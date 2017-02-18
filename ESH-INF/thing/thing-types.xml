@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<thing:thing-descriptions bindingId="zmote"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:thing="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0"
+        xsi:schemaLocation="http://eclipse.org/smarthome/schemas/thing-description/v1.0.0 http://eclipse.org/smarthome/schemas/thing-description-1.0.0.xsd">
+
+    <thing-type id="zmt2">
+        <label>ZMote ZMT2</label>
+        <description>ZMote IR home controller.</description>
+
+        <channels>
+            <channel id="online" typeId="online"/>
+            <channel id="sendcode" typeId="sendcode"/>
+            <channel id="sendkey" typeId="sendkey"/>
+        </channels>
+        
+        <config-description>
+            <parameter name="configFile" type="text" required="true">
+                <label>Configuration File</label>
+                <description>The path to the configuration file for the remote.</description>
+            </parameter>
+
+            <parameter name="uuid" type="text" required="true">
+                <label>UUID</label>
+                <description>The unique ID of the ZMote device.</description>
+            </parameter>
+
+            <parameter name="url" type="text" required="true">
+                <label>Device URL</label>
+                <description>The URL of the ZMote if auto-discovery should not be used.</description>
+            </parameter>
+
+            <parameter name="remote" type="text" required="true">
+                <label>Remote</label>
+                <description>The name of the remote as referenced in the configuration file.</description>
+            </parameter>
+
+            <parameter name="retry" type="integer" required="false">
+                <label>Retry</label>
+                <default>3</default>
+                <description>How often sending an IR code is retried until we give up.</description>
+            </parameter>
+
+            <parameter name="timeout" type="integer" required="false">
+                <label>Timeout</label>
+                <default>10</default>
+                <description>The timeout until we give up connecting to the device.</description>
+            </parameter>
+        </config-description>
+    </thing-type>
+
+    <channel-type id="online">
+        <item-type>Switch</item-type>
+        <label>Online</label>
+        <description>States whether the ZMote is online or not.</description>
+        <category>Switch</category>
+        <state readOnly="true"></state>
+    </channel-type>
+
+    <channel-type id="sendcode">
+        <item-type>String</item-type>        
+        <label>Code</label>
+        <description>The IR code that should be sent by the device.</description>
+        <state readOnly="false"></state>  
+    </channel-type>
+
+    <channel-type id="sendkey">
+        <item-type>String</item-type>        
+        <label>Key</label>
+        <description>The name of the button that should be sent by the device.</description>
+        <state readOnly="false"></state>  
+    </channel-type>
+</thing:thing-descriptions>
