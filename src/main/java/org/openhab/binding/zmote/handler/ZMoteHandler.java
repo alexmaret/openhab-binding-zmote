@@ -115,6 +115,9 @@ public class ZMoteHandler extends BaseThingHandler {
 
     @Override
     public void handleConfigurationUpdate(final Map<String, Object> configurationParameters) {
+
+        boolean hadValidConfig = true;
+
         try {
             // try to unregister the old configuration
             if (zmoteService != null) {
@@ -123,9 +126,17 @@ public class ZMoteHandler extends BaseThingHandler {
             }
         } catch (final Exception e) {
             // invalid configuration, maybe its valid after this update
+            hadValidConfig = false;
         }
 
         super.handleConfigurationUpdate(configurationParameters);
+
+        if (!hadValidConfig && !isInitialized()) {
+            // base handler will not reinitialize if the plugin was not initialized before
+            // if we had an invalid config we have to reinitialize ourselves as we might a
+            // valid config now. This only happens when adding things manually.
+            initialize();
+        }
     }
 
     private void onChannelOnlineCommand(final ChannelUID channelUID, final Command command, final ZMoteConfig config) {
