@@ -126,7 +126,7 @@ public class ZMoteDiscoveryServiceParticipant extends AbstractDiscoveryService
 
     private DiscoveryResult createDiscoveryResult(final ZMoteDevice device) {
         final String uuid = device.getUuid();
-        final String label = String.format("ZMote IR Transmitter (%s)", uuid);
+        final String label = String.format("ZMote IR Home Controller (%s)", uuid);
 
         final Map<String, Object> properties = new HashMap<>(6);
         properties.put(ZMoteBindingConstants.PROP_UUID, uuid);

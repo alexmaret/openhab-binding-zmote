@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 public class ZMoteConfig {
 
     String configFile;
-    String remote;
     BigDecimal retry;
     BigDecimal timeout;
     String url;
@@ -17,14 +16,6 @@ public class ZMoteConfig {
 
     public void setConfigFile(final String configFile) {
         this.configFile = configFile;
-    }
-
-    public String getRemote() {
-        return remote;
-    }
-
-    public void setRemote(final String remote) {
-        this.remote = remote;
     }
 
     public BigDecimal getRetry() {
@@ -66,7 +57,6 @@ public class ZMoteConfig {
         stringBuilder.append("ZMoteConfig [");
         stringBuilder.append(" uuid=\"").append(uuid).append("\",");
         stringBuilder.append(" url=\"").append(url).append("\",");
-        stringBuilder.append(" remote=\"").append(remote).append("\",");
         stringBuilder.append(" configFile=\"").append(configFile).append("\",");
         stringBuilder.append(" retry=\"").append(retry).append("\"");
         stringBuilder.append(" timeout=\"").append(timeout).append("\"");

@@ -4,11 +4,12 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.openhab.binding.zmote.ZMoteBindingConstants;
 import org.openhab.binding.zmote.internal.config.IRCodeConfigurationCache;
 import org.openhab.binding.zmote.internal.config.RemoteConfiguration;
+import org.openhab.binding.zmote.internal.exception.CommunicationException;
 import org.openhab.binding.zmote.internal.exception.ConfigurationException;
 import org.openhab.binding.zmote.internal.exception.DeviceBusyException;
 import org.openhab.binding.zmote.internal.model.IRCode;
@@ -19,9 +20,8 @@ import org.slf4j.LoggerFactory;
 public class ZMoteService implements IZMoteService {
 
     private final Logger logger = LoggerFactory.getLogger(ZMoteService.class);
-
-    private final Map<String, IZMoteClient> zmoteClients = new ConcurrentHashMap<>();
-    private final Map<String, Map<String, IRCodeConfigurationCache>> configCache = new ConcurrentHashMap<>();
+    private final Map<String, IZMoteClient> clients = new ConcurrentHashMap<>();
+    private final Map<String, IRCodeConfigurationCache> files = new ConcurrentHashMap<>();
 
     @Override
     public boolean sendCode(final ZMoteConfig config, final String code) {
@@ -30,8 +30,7 @@ public class ZMoteService implements IZMoteService {
 
     @Override
     public boolean sendCode(final ZMoteConfig config, final String code, final int repeat) {
-        final String uuid = config.getUuid();
-        return transmitCode(uuid, new IRCode(code), repeat);
+        return transmitCode(config, new IRCode(code), repeat);
     }
 
     @Override
@@ -41,33 +40,25 @@ public class ZMoteService implements IZMoteService {
 
     @Override
     public boolean sendKey(final ZMoteConfig config, final String button, final int repeat) {
-        final String uuid = config.getUuid();
-        final String remote = config.getRemote();
-        final IRCode code = lookupCode(uuid, remote, button);
+        final String configFile = config.getConfigFile();
+        final IRCodeConfigurationCache codesCache = registerOrLookupFile(configFile);
+        final IRCode code = codesCache.getCode(button);
 
         if (code == null) {
             if (logger.isErrorEnabled()) {
-                logger.error("No IR code found for button '{}' of remote '%s'.", button, remote);
+                logger.error("No IR code found for button '{}' in config file '{}'.", button, configFile);
             }
             return false;
         }
 
-        return transmitCode(uuid, code, repeat);
+        return transmitCode(config, code, repeat);
     }
 
     @Override
     public synchronized void registerConfiguration(final ZMoteConfig config) {
         try {
-            final String uuid = config.getUuid();
-            final String url = config.getUrl();
-            final BigDecimal timeout = config.getTimeout();
-            final String remote = config.getRemote();
-            final String configFilePath = config.getConfigFile();
-
-            final int timeoutInt = (timeout != null) ? timeout.intValue() : 10;
-
-            registerRemote(uuid, remote, configFilePath);
-            registerClient(uuid, url, timeoutInt);
+            registerOrLookupFile(config.getConfigFile());
+            registerOrLookupClient(config);
 
         } catch (final ConfigurationException e) {
             throw e;
@@ -80,20 +71,18 @@ public class ZMoteService implements IZMoteService {
     @Override
     public synchronized void unregisterConfiguration(final ZMoteConfig config) {
         final String uuid = config.getUuid();
-        final String remote = config.getRemote();
+        final String configFile = config.getConfigFile();
 
-        final Map<String, IRCodeConfigurationCache> remotesCache = configCache.get(uuid);
-
-        if (remotesCache != null) {
-            remotesCache.remove(remote);
+        if (configFile != null) {
+            files.remove(configFile);
         }
 
-        if ((remotesCache == null) || remotesCache.isEmpty()) {
-            final IZMoteClient client = zmoteClients.get(uuid);
+        if (uuid != null) {
+            final IZMoteClient client = clients.get(uuid);
 
             if (client != null) {
+                clients.remove(uuid);
                 client.dispose();
-                zmoteClients.remove(uuid);
             }
         }
     }
@@ -105,16 +94,15 @@ public class ZMoteService implements IZMoteService {
     }
 
     protected void deactivate() {
+
         if (logger.isDebugEnabled()) {
             logger.debug("ZMote service deactivated.");
         }
 
-        final Set<String> clientUuids = zmoteClients.keySet();
-        final Iterator<String> iterator = clientUuids.iterator();
+        final Iterator<String> iterator = clients.keySet().iterator();
 
         while (iterator.hasNext()) {
-            final String uuid = iterator.next();
-            final IZMoteClient client = zmoteClients.get(uuid);
+            final IZMoteClient client = clients.get(iterator.next());
 
             if (client != null) {
                 client.dispose();
@@ -124,62 +112,66 @@ public class ZMoteService implements IZMoteService {
         }
     }
 
-    private IRCode lookupCode(final String uuid, final String remote, final String buttonName) {
-        final Map<String, IRCodeConfigurationCache> remotesCache = configCache.get(uuid);
+    private IZMoteClient registerOrLookupClient(final ZMoteConfig config) {
 
-        if (remotesCache == null) {
-            return null;
-        }
-
-        final IRCodeConfigurationCache codesCache = remotesCache.get(remote);
-
-        if (codesCache == null) {
-            return null;
-        }
-
-        return codesCache.getCode(buttonName);
-    }
-
-    private void registerClient(final String uuid, final String url, final int timeout) {
-
-        IZMoteClient client = zmoteClients.get(uuid);
+        final String uuid = config.getUuid();
+        IZMoteClient client = clients.get(uuid);
 
         if (client == null) {
-            client = new ZMoteV2Client(url, timeout);
+            final String url = config.getUrl();
+            final BigDecimal timeout = config.getTimeout();
+            final int timeoutInt = (timeout != null) ? timeout.intValue() : ZMoteBindingConstants.DEFAULT_TIMEOUT;
+
+            client = new ZMoteV2Client(url, timeoutInt);
             client.initialize();
-            zmoteClients.put(uuid, client);
+            clients.put(uuid, client);
         }
+
+        return client;
     }
 
-    private void registerRemote(final String uuid, final String remote, final String configFile) {
+    private IRCodeConfigurationCache registerOrLookupFile(final String configFile) {
 
-        Map<String, IRCodeConfigurationCache> remotesCache = configCache.get(uuid);
+        IRCodeConfigurationCache cache;
 
-        if (remotesCache == null) {
-            remotesCache = new ConcurrentHashMap<>();
-            configCache.put(uuid, remotesCache);
+        if (configFile != null) {
+            cache = files.get(configFile);
+
+            if (cache != null) {
+                return cache;
+            }
         }
 
-        remotesCache.put(remote, new IRCodeConfigurationCache(new RemoteConfiguration(new File(configFile))));
+        cache = new IRCodeConfigurationCache(new RemoteConfiguration(new File(configFile)));
+        files.put(configFile, cache);
+        return cache;
     }
 
-    private boolean transmitCode(final String uuid, final IRCode code, final int repeat) {
-
-        final IZMoteClient client = zmoteClients.get(uuid);
-
-        if (client == null) {
-            throw new IllegalStateException(String.format("No client available for uuid %s!", uuid));
-        }
+    private boolean transmitCode(final ZMoteConfig config, final IRCode code, final int repeat) {
+        final BigDecimal configRetry = config.getRetry();
+        final int retry = (configRetry != null) ? configRetry.intValue() : ZMoteBindingConstants.DEFAULT_RETRY;
+        final String uuid = config.getUuid();
+        final IZMoteClient client = registerOrLookupClient(config);
 
         boolean success = false;
 
-        for (int i = 1; i <= repeat; ++i) {
-            try {
-                client.sendir(uuid, code.nextCode());
-                success = true; // if at least one code was sent we consider it a success
+        for (int i = 0; i < repeat; ++i) {
 
-            } catch (final DeviceBusyException e) {
-                // busy or other communication errors
+            success = false;
+
+            for (int j = 0; j < retry; ++j) {
+                try {
+                    client.sendir(uuid, code.nextCode());
+                    success = true;
+                    break;
+                } catch (final DeviceBusyException e) {
+                    // busy or other communication errors
+                }
+            }
+
+            if (success == false) {
+                throw new CommunicationException(
+                        String.format("Failed to send IR code to device '%s' after %d retries!", uuid, retry));
             }
         }
 

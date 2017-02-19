@@ -6,7 +6,10 @@
 
     <thing-type id="zmt2">
         <label>ZMote ZMT2</label>
-        <description>ZMote IR home controller.</description>
+        <description>
+            ZMote is a IR transmitter that connects to your home WiFi network and let's you control
+            all your IR enabled devices, like e.g. TVs, Blu-ray players, air conditioners and may more.
+        </description>
 
         <channels>
             <channel id="online" typeId="online"/>
@@ -30,11 +33,6 @@
                 <description>The URL of the ZMote if auto-discovery should not be used.</description>
             </parameter>
 
-            <parameter name="remote" type="text" required="false">
-                <label>Remote</label>
-                <description>The name of the remote as referenced in the configuration file.</description>
-            </parameter>
-
             <parameter name="retry" type="integer" required="false">
                 <label>Retry</label>
                 <default>3</default>
@@ -43,7 +41,7 @@
 
             <parameter name="timeout" type="integer" required="false">
                 <label>Timeout</label>
-                <default>10</default>
+                <default>5</default>
                 <description>The timeout until we give up connecting to the device.</description>
             </parameter>
         </config-description>

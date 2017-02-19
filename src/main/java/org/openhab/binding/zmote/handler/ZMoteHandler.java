@@ -174,10 +174,6 @@ public class ZMoteHandler extends BaseThingHandler {
             throw new ConfigurationException("A configuration file needs to be provided to use this thing.");
         }
 
-        if (StringUtils.trimToNull(config.getRemote()) == null) {
-            throw new ConfigurationException("A remote name has to be set to use this thing.");
-        }
-
         if (StringUtils.trimToNull(config.getUrl()) == null) {
             throw new ConfigurationException("A URL has to be set to use this thing.");
         }

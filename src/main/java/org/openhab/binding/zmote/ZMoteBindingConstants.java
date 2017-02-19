@@ -24,6 +24,9 @@ public class ZMoteBindingConstants {
 
     public final static ThingTypeUID THING_TYPE_ZMT2 = new ThingTypeUID(BINDING_ID, "zmt2");
 
+    public final static int DEFAULT_TIMEOUT = 5;
+    public final static int DEFAULT_RETRY = 3;
+
     public final static int DISCOVERY_INTERVAL = 60;
     public final static int DISCOVERY_TIMEOUT = 30;
     public final static int DISCOVERY_UPDATE_INTERVAL = 30;
