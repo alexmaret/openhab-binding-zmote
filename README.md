@@ -28,7 +28,7 @@ When configuring your device manually, be aware that some options have to be pro
 as numbers, i.e. without quotation marks.
 
 ```
-zmote:zmt2:devicename [ uuid="00a1b2c4", configFile="/path/to/config.json", remote="sony", url="http://10.10.10.10", retry=1, timeout=10 ]
+zmote:zmt2:devicename [ uuid="CI00a1b2c4", configFile="/path/to/config.json", remote="sony", url="http://10.10.10.10", retry=1, timeout=10 ]
 ```
 
 - **uuid** (required): The unique ID of your ZMote device. You can get this id by checking 
@@ -56,7 +56,7 @@ Auto discovery will try to find the device in one minute intervals.
 
 **demo.things**
 ```
-zmote:zmt2:sony "Sony Remote" [ uuid="00a1b2c4", configFile="/path/to/config.json", remote="sony", url="http://10.10.10.10" ]
+zmote:zmt2:sony "Sony Remote" [ uuid="CI00a1b2c4", configFile="/path/to/config.json", remote="sony", url="http://10.10.10.10" ]
 ```
 
 **demo.items**
@@ -71,7 +71,7 @@ field in your configuration file.
 
 **demo.things**
 ```
-zmote:zmt2:sony "Sony Remote" [ uuid="00a1b2c4", configFile="/path/to/config.json", remote="sony", url="http://10.10.10.10" ]
+zmote:zmt2:sony "Sony Remote" [ uuid="CI00a1b2c4", configFile="/path/to/config.json", remote="sony", url="http://10.10.10.10" ]
 ```
 
 **demo.items**
@@ -93,7 +93,7 @@ file and a remote name at the moment.
 
 **demo.things**
 ```
-zmote:zmt2:sony "Sony Remote" [ uuid="00a1b2c4", configFile="/path/to/config.json", remote="sony", url="http://10.10.10.10" ]
+zmote:zmt2:sony "Sony Remote" [ uuid="CI00a1b2c4", configFile="/path/to/config.json", remote="sony", url="http://10.10.10.10" ]
 ```
 
 **demo.items**
