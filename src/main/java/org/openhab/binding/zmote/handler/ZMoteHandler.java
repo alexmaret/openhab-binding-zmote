@@ -57,9 +57,15 @@ public class ZMoteHandler extends BaseThingHandler {
     public void dispose() {
         stopStatusUpdateWorker();
 
-        if (zmoteService != null) {
-            final ZMoteConfig zmoteConfig = getZMoteConfig();
-            zmoteService.unregisterConfiguration(zmoteConfig);
+        try {
+            if (zmoteService != null) {
+                final ZMoteConfig zmoteConfig = getZMoteConfig();
+                zmoteService.unregisterConfiguration(zmoteConfig);
+            }
+        } catch (final Exception e) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Ignored exception while disposing device!", e);
+            }
         }
     }
 

@@ -15,22 +15,22 @@
         </channels>
         
         <config-description>
-            <parameter name="configFile" type="text" required="true">
+            <parameter name="configFile" type="text" required="false">
                 <label>Configuration File</label>
                 <description>The path to the configuration file for the remote.</description>
             </parameter>
 
-            <parameter name="uuid" type="text" required="true">
+            <parameter name="uuid" type="text" required="false">
                 <label>UUID</label>
                 <description>The unique ID of the ZMote device.</description>
             </parameter>
 
-            <parameter name="url" type="text" required="true">
+            <parameter name="url" type="text" required="false">
                 <label>Device URL</label>
                 <description>The URL of the ZMote if auto-discovery should not be used.</description>
             </parameter>
 
-            <parameter name="remote" type="text" required="true">
+            <parameter name="remote" type="text" required="false">
                 <label>Remote</label>
                 <description>The name of the remote as referenced in the configuration file.</description>
             </parameter>
