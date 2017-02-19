@@ -7,12 +7,12 @@
  */
 package org.openhab.binding.zmote.handler;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang.StringUtils;
-import org.eclipse.smarthome.config.core.Configuration;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -56,30 +56,17 @@ public class ZMoteHandler extends BaseThingHandler {
     @Override
     public void dispose() {
         stopStatusUpdateWorker();
-
-        try {
-            if (zmoteService != null) {
-                final ZMoteConfig zmoteConfig = getZMoteConfig();
-                zmoteService.unregisterConfiguration(zmoteConfig);
-            }
-        } catch (final Exception e) {
-            if (logger.isDebugEnabled()) {
-                logger.debug("Ignored exception while disposing device!", e);
-            }
-        }
+        unregisterDeviceConfiguration(null);
     }
 
     @Override
     public void initialize() {
         try {
-            if (zmoteService == null) {
-                throw new IllegalStateException("Internal plugin error: The ZMote service is not available!");
-            }
-
-            final ZMoteConfig zmoteConfig = getZMoteConfigValidated();
-            zmoteService.registerConfiguration(zmoteConfig);
+            final ZMoteConfig config = getZMoteConfigValidated();
+            registerDeviceConfiguration(config);
             startStatusUpdateWorker();
-            updateStatusToOnlineIfAvailable();
+            updateOnlineStatus(config);
+            updateOnlineState(config);
 
         } catch (final Exception e) {
             stopStatusUpdateWorker();
@@ -121,27 +108,18 @@ public class ZMoteHandler extends BaseThingHandler {
 
     @Override
     public void handleConfigurationUpdate(final Map<String, Object> configurationParameters) {
-
-        boolean hadValidConfig = true;
-
-        try {
-            // try to unregister the old configuration
-            if (zmoteService != null) {
-                final ZMoteConfig zmoteConfig = getZMoteConfigValidated();
-                zmoteService.unregisterConfiguration(zmoteConfig);
-            }
-        } catch (final Exception e) {
-            // invalid configuration, maybe its valid after this update
-            hadValidConfig = false;
-        }
-
+        unregisterDeviceConfiguration(null);
         super.handleConfigurationUpdate(configurationParameters);
+    }
 
-        if (!hadValidConfig && !isInitialized()) {
-            // base handler will not reinitialize if the plugin was not initialized before
-            // if we had an invalid config we have to reinitialize ourselves as we might a
-            // valid config now. This only happens when adding things manually.
-            initialize();
+    @Override
+    protected void updateStatus(final ThingStatus status) {
+        final ThingStatus currentStatus = getThing().getStatus();
+
+        // we do not want to override status details previously set
+        // so don't set the state if it is unchanged
+        if (currentStatus != status) {
+            super.updateStatus(status);
         }
     }
 
@@ -211,6 +189,32 @@ public class ZMoteHandler extends BaseThingHandler {
         return ThingStatus.ONLINE.equals(getThing().getStatus());
     }
 
+    private void registerDeviceConfiguration(final ZMoteConfig config) {
+        if (zmoteService == null) {
+            throw new IllegalStateException("Internal plugin error: The ZMote service is not available!");
+        }
+
+        final ZMoteConfig zmoteConfig = (config != null) ? config : getZMoteConfigValidated();
+        zmoteService.registerConfiguration(zmoteConfig);
+    }
+
+    private void unregisterDeviceConfiguration(final ZMoteConfig config) {
+        try {
+            if (zmoteService == null) {
+                throw new IllegalStateException("Internal plugin error: The ZMote service is not available!");
+            }
+
+            final ZMoteConfig zmoteConfig = (config != null) ? config : getZMoteConfigValidated();
+            zmoteService.unregisterConfiguration(zmoteConfig);
+
+        } catch (final Exception e) {
+            // ignore it, the configuration was probably never registered as it is invalid
+            if (logger.isDebugEnabled()) {
+                logger.debug("Ignored exception while removing device configuration!", e);
+            }
+        }
+    }
+
     private void startStatusUpdateWorker() {
         stopStatusUpdateWorker();
 
@@ -225,8 +229,8 @@ public class ZMoteHandler extends BaseThingHandler {
             }
         };
 
-        statusUpdateFuture = scheduler.scheduleWithFixedDelay(runnable, 0, ZMoteBindingConstants.DISCOVERY_INTERVAL,
-                TimeUnit.SECONDS);
+        statusUpdateFuture = scheduler.scheduleWithFixedDelay(runnable, 0,
+                ZMoteBindingConstants.DISCOVERY_UPDATE_INTERVAL, TimeUnit.SECONDS);
     }
 
     private void stopStatusUpdateWorker() {
@@ -252,6 +256,32 @@ public class ZMoteHandler extends BaseThingHandler {
         }
     }
 
+    private void updateOnlineStatus(final ZMoteConfig zmoteConfig) {
+        final ThingStatusInfo thingStatusInfo = getThing().getStatusInfo();
+        final ThingStatus thingStatus = thingStatusInfo.getStatus();
+        final ThingStatusDetail thingStatusDetail = thingStatusInfo.getStatusDetail();
+
+        if ((zmoteDiscoveryService == null) || !zmoteDiscoveryService.isOnline(zmoteConfig.getUuid())) {
+            updateStatus(ThingStatus.OFFLINE);
+            return;
+        }
+
+        if (ThingStatus.OFFLINE.equals(thingStatus)) {
+            if (ThingStatusDetail.CONFIGURATION_ERROR.equals(thingStatusDetail)) {
+                try {
+                    getZMoteConfigValidated();
+                } catch (final Exception e) {
+                    return; // config is still invalid
+                }
+
+            } else if (ThingStatusDetail.COMMUNICATION_ERROR.equals(thingStatusDetail)) {
+                // TODO try to talk to the device using a REST call before setting it online again
+            }
+        }
+
+        updateStatus(ThingStatus.ONLINE);
+    }
+
     private void updateStatusAndConfigurationFromDiscoveryService() {
 
         if (zmoteDiscoveryService == null) {
@@ -259,25 +289,21 @@ public class ZMoteHandler extends BaseThingHandler {
         }
 
         final ZMoteConfig zmoteConfig = getZMoteConfig();
-        final ZMoteDevice device = zmoteDiscoveryService.getDevice(zmoteConfig.getUuid());
+        final ZMoteDevice zmoteDevice = zmoteDiscoveryService.getDevice(zmoteConfig.getUuid());
 
-        updateOnlineState(zmoteConfig);
-
-        if (device == null) {
-            updateStatus(ThingStatus.OFFLINE);
-
-        } else {
+        if (zmoteDevice != null) {
             final String configUrl = (String) getConfig().get(ZMoteBindingConstants.CONFIG_URL);
-            final String deviceUrl = device.getUrl();
+            final String deviceUrl = zmoteDevice.getUrl();
 
             if ((deviceUrl != null) && !deviceUrl.isEmpty() && !deviceUrl.equals(configUrl)) {
-                final Configuration configuration = editConfiguration();
-                configuration.put(ZMoteBindingConstants.CONFIG_URL, deviceUrl);
-                updateConfiguration(configuration);
+                final Map<String, Object> configParams = new HashMap<>();
+                configParams.put(ZMoteBindingConstants.CONFIG_URL, deviceUrl);
+                handleConfigurationUpdate(configParams); // make sure the device is reinitialized
             }
-
-            updateStatus(ThingStatus.ONLINE);
         }
+
+        updateOnlineState(zmoteConfig);
+        updateOnlineStatus(zmoteConfig);
     }
 
     private void updateStatusFromException(final Exception e) {
@@ -308,30 +334,5 @@ public class ZMoteHandler extends BaseThingHandler {
                 logger.debug("Ignored exception while recovering from error!", ex);
             }
         }
-    }
-
-    private void updateStatusToOnlineIfAvailable() {
-        final ThingStatusInfo thingStatusInfo = getThing().getStatusInfo();
-        final ThingStatus thingStatus = thingStatusInfo.getStatus();
-        final ThingStatusDetail thingStatusDetail = thingStatusInfo.getStatusDetail();
-
-        if (ThingStatus.ONLINE.equals(thingStatus)) {
-            return; // already online
-        }
-
-        if (ThingStatus.OFFLINE.equals(thingStatus)) {
-            if (ThingStatusDetail.CONFIGURATION_ERROR.equals(thingStatusDetail)) {
-                try {
-                    getZMoteConfigValidated();
-                } catch (final Exception e) {
-                    return; // config is still invalid
-                }
-
-            } else if (ThingStatusDetail.COMMUNICATION_ERROR.equals(thingStatusDetail)) {
-                // TODO try to talk to the device using a REST call before setting it online again
-            }
-        }
-
-        updateStatus(ThingStatus.ONLINE);
     }
 }
