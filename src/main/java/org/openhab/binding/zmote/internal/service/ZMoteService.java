@@ -9,7 +9,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.openhab.binding.zmote.internal.config.IRCodeConfigurationCache;
 import org.openhab.binding.zmote.internal.config.RemoteConfiguration;
-import org.openhab.binding.zmote.internal.exception.CommunicationException;
 import org.openhab.binding.zmote.internal.exception.ConfigurationException;
 import org.openhab.binding.zmote.internal.exception.DeviceBusyException;
 import org.openhab.binding.zmote.internal.model.IRCode;
@@ -58,7 +57,6 @@ public class ZMoteService implements IZMoteService {
 
     @Override
     public synchronized void registerConfiguration(final ZMoteConfig config) {
-
         try {
             final String uuid = config.getUuid();
             final String url = config.getUrl();
@@ -71,35 +69,31 @@ public class ZMoteService implements IZMoteService {
             registerRemote(uuid, remote, configFilePath);
             registerClient(uuid, url, timeoutInt);
 
+        } catch (final ConfigurationException e) {
+            throw e;
+
         } catch (final Exception e) {
-            throw new ConfigurationException(
-                    String.format("Failed to initialize configuration for device: %s!", config), e);
+            throw new ConfigurationException(String.format("Failed to initialize configuration: %s!", config), e);
         }
     }
 
     @Override
     public synchronized void unregisterConfiguration(final ZMoteConfig config) {
-        try {
-            final String uuid = config.getUuid();
-            final String remote = config.getRemote();
+        final String uuid = config.getUuid();
+        final String remote = config.getRemote();
 
-            final Map<String, IRCodeConfigurationCache> remotesCache = configCache.get(uuid);
+        final Map<String, IRCodeConfigurationCache> remotesCache = configCache.get(uuid);
 
-            if (remotesCache != null) {
-                remotesCache.remove(remote);
-            }
+        if (remotesCache != null) {
+            remotesCache.remove(remote);
+        }
 
-            if ((remotesCache == null) || remotesCache.isEmpty()) {
-                final IZMoteClient client = zmoteClients.get(uuid);
+        if ((remotesCache == null) || remotesCache.isEmpty()) {
+            final IZMoteClient client = zmoteClients.get(uuid);
 
-                if (client != null) {
-                    client.dispose();
-                    zmoteClients.remove(uuid);
-                }
-            }
-        } catch (final Exception e) {
-            if (logger.isDebugEnabled()) {
-                logger.error("Failed to remove device configuration {}!", config, e);
+            if (client != null) {
+                client.dispose();
+                zmoteClients.remove(uuid);
             }
         }
     }
@@ -186,8 +180,6 @@ public class ZMoteService implements IZMoteService {
 
             } catch (final DeviceBusyException e) {
                 // busy or other communication errors
-            } catch (final Exception e) {
-                throw new CommunicationException("Communication with device failed!", e);
             }
         }
 

@@ -38,7 +38,7 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
     private static final Pattern PATTERN_REVISION = Pattern.compile("<-Revision=([^>]+)>", Pattern.CASE_INSENSITIVE);
     private static final Pattern PATTERN_TYPE = Pattern.compile("<-Type=([^>]+)>", Pattern.CASE_INSENSITIVE);
     private static final Pattern PATTERN_URL = Pattern.compile("<-Config-URL=(http[^>]+)>", Pattern.CASE_INSENSITIVE);
-    private static final Pattern PATTERN_UUID = Pattern.compile("<-UUID=(CI[^>]+)>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PATTERN_UUID = Pattern.compile("<-UUID=([^>]+)>", Pattern.CASE_INSENSITIVE);
 
     private static final String ZMOTE_TYPE = "ZMT2";
     private static final String ZMOTE_MAKE = "zmote.io";

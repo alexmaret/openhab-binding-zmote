@@ -23,6 +23,11 @@ public class RemoteConfiguration {
             throw new IllegalArgumentException("File cannot be null!");
         }
 
+        if (!file.exists() || !file.canRead()) {
+            throw new ConfigurationException(String.format("Configuration file '%s' does not exist or is not readable!",
+                    file.getAbsolutePath()));
+        }
+
         this.file = file;
     }
 
@@ -44,7 +49,9 @@ public class RemoteConfiguration {
 
         } catch (final SecurityException e) {
             if (logger.isErrorEnabled()) {
-                logger.error("Access to file '{}' has been denied!", file.getAbsolutePath(), e);
+                logger.error(
+                        "Access to configuration file '{}' has been denied! Make sure it is readable by the openhab user.",
+                        file.getAbsolutePath(), e);
             }
             return false;
         }
@@ -66,7 +73,9 @@ public class RemoteConfiguration {
             return gson.fromJson(br, Remote.class);
 
         } catch (final Exception e) {
-            final String errorMsg = String.format("Configuration file '%s' cannot be read!", file.getAbsolutePath());
+            final String errorMsg = String.format(
+                    "Configuration file '%s' could not be read! Make sure it has the correct format and can be read by the openhab user.",
+                    file.getAbsolutePath());
             logger.error(errorMsg, e);
             clearLastModified();
             throw new ConfigurationException(errorMsg, e);

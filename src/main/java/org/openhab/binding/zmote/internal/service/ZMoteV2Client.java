@@ -26,7 +26,6 @@ public class ZMoteV2Client implements IZMoteClient {
     public ZMoteV2Client(final String baseUrl, final int timeout) {
         this.baseUrl = baseUrl;
         this.timeout = timeout;
-
     }
 
     @Override

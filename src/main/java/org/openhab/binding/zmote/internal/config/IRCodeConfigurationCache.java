@@ -42,7 +42,8 @@ public class IRCodeConfigurationCache {
 
         if (remote == null) {
             updateCodes(null);
-            throw new ConfigurationException(String.format("Invalid configuration file '%s'!", filePath));
+            throw new ConfigurationException(
+                    String.format("The configuration file '%s' contains invalid data and cannot be read!", filePath));
         }
 
         final Collection<Button> buttons = remote.getButtons();
@@ -59,12 +60,11 @@ public class IRCodeConfigurationCache {
 
         final boolean wasEmpty = codeCache.isEmpty();
 
+        codeCache.clear();
+
         if (buttons == null) {
-            codeCache.clear();
             return wasEmpty; // code cache unchanged if it was empty before
         }
-
-        codeCache.clear();
 
         for (final Button button : buttons) {
             final String name = cleanupValue(button.getKey());
