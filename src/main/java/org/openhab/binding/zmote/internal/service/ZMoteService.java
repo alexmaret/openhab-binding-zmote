@@ -159,7 +159,7 @@ public class ZMoteService implements IZMoteService {
 
             success = false;
 
-            for (int j = 0; j < retry; ++j) {
+            for (int j = 0; j <= retry; ++j) {
                 try {
                     client.sendir(uuid, code.nextCode());
                     success = true;
