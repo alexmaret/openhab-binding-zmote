@@ -15,10 +15,11 @@ manually as specified in the Thing configuration section.
 
 ## IR Configuration
 
-The IR code configuration is based on a configuration file you can download from 
-the ZMote webapp. Just configure your IR remotes with the webapp and download the configuration 
-in JSON format. The full path to the configuration file has to be specified in the Thing configuration.
-To reference a button, use the value provided for the "key" field.
+The IR code configuration is based on a configuration file you can download from
+the ZMote webapp, as described [here](https://community.openhab.org/t/openhab-zmote-binding/14226/23).
+Just configure your IR remotes with the webapp and download the configuration in JSON
+format. The full path to the configuration file has to be specified in the Thing
+configuration. To reference a button, use the value provided for the "key" field.
 
 ## Thing Configuration
 
