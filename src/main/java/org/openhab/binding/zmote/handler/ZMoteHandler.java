@@ -56,7 +56,7 @@ public class ZMoteHandler extends BaseThingHandler {
     @Override
     public void dispose() {
         stopStatusUpdateWorker();
-        unregisterDeviceConfiguration(null);
+        unregisterDeviceConfiguration();
     }
 
     @Override
@@ -108,7 +108,7 @@ public class ZMoteHandler extends BaseThingHandler {
 
     @Override
     public void handleConfigurationUpdate(final Map<String, Object> configurationParameters) {
-        unregisterDeviceConfiguration(null);
+        unregisterDeviceConfiguration();
         super.handleConfigurationUpdate(configurationParameters);
     }
 
@@ -170,9 +170,9 @@ public class ZMoteHandler extends BaseThingHandler {
     private ZMoteConfig getZMoteConfigValidated() {
         final ZMoteConfig config = getZMoteConfig();
 
-        if (StringUtils.trimToNull(config.getConfigFile()) == null) {
-            throw new ConfigurationException("A configuration file needs to be provided to use this thing.");
-        }
+        // if (StringUtils.trimToNull(config.getConfigFile()) == null) {
+        // throw new ConfigurationException("A configuration file needs to be provided to use this thing.");
+        // }
 
         if (StringUtils.trimToNull(config.getUrl()) == null) {
             throw new ConfigurationException("A URL has to be set to use this thing.");
@@ -194,13 +194,13 @@ public class ZMoteHandler extends BaseThingHandler {
         zmoteService.registerConfiguration(zmoteConfig);
     }
 
-    private void unregisterDeviceConfiguration(final ZMoteConfig config) {
+    private void unregisterDeviceConfiguration() {
         try {
             if (zmoteService == null) {
                 throw new IllegalStateException("Internal plugin error: The ZMote service is not available!");
             }
 
-            final ZMoteConfig zmoteConfig = (config != null) ? config : getZMoteConfigValidated();
+            final ZMoteConfig zmoteConfig = getZMoteConfigValidated();
             zmoteService.unregisterConfiguration(zmoteConfig);
 
         } catch (final Exception e) {
@@ -292,6 +292,9 @@ public class ZMoteHandler extends BaseThingHandler {
             final String deviceUrl = zmoteDevice.getUrl();
 
             if ((deviceUrl != null) && !deviceUrl.isEmpty() && !deviceUrl.equals(configUrl)) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("ZMote URL changed from {} to {}.", configUrl, deviceUrl);
+                }
                 final Map<String, Object> configParams = new HashMap<>();
                 configParams.put(ZMoteBindingConstants.CONFIG_URL, deviceUrl);
                 handleConfigurationUpdate(configParams); // make sure the device is reinitialized

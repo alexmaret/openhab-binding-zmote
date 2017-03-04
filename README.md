@@ -34,7 +34,7 @@ zmote:zmt2:devicename [ uuid="CI00a1b2c4", configFile="/path/to/config.json", ur
 
 - **uuid** (required): The unique ID of your ZMote device. You can get this id by checking 
   the auto-discovered things in your inbox where the uuid will be used as device name.
-- **configFile** (required): The configuration file which contains the IR configuration 
+- **configFile** (optional): The configuration file which contains the IR configuration 
   downloaded from the ZMote webapp. This should be the full path to the file, e.g. 
   "C:\OpenHAB\userdata\config\remote.json" on Windows or "/opt/openhab/userdata/config/remote.json" 
   on Unix systems.
@@ -95,23 +95,22 @@ Selection item=zmote_samsung_sendkey label="Samsung Input Selection" mappings=["
 
 ### Channel: sendcode
 
-Allows you to send any IR code. This still requires you to provide a valid configuration 
-file at the moment, even though it is not used.
+Allows you to send any IR code.
 
 **demo.things**
 ```
-zmote:zmt2:sony "Sony Remote" [ uuid="CI00a1b2c4", configFile="/opt/openhab/userdata/config/sony.json", url="http://10.10.10.10" ]
+zmote:zmt2:ir "Any Remote" [ uuid="CI00a1b2c4", url="http://10.10.10.10" ]
 zmote:zmt2:samsung "Samsung Remote" [ uuid="CI00a1b2c4", configFile="c:\OpenHAB\userdata\config\samsung.json", url="http://127.0.0.1" ]
 ```
 
 **demo.items**
 ```xtend
-String zmote_sony_sendcode "Send Sony IR Code" { channel="zmote:zmt2:sony:sendcode" }
-String zmote_samsung_sendcode "Send Samsung IR Code" { channel="zmote:zmt2:samsung:sendcode" }
+String zmote_ir_sendcode "Send IR Code" { channel="zmote:zmt2:ir:sendcode" }
+String zmote_samsung_sendcode "Send IR Code" { channel="zmote:zmt2:samsung:sendcode" }
 ```
 
 **demo.sitemap**
 ```xtend
-Switch item=zmote_sony_sendcode label="Sony Power" mappings=[ "36000,2,1,32,32,64,32,32,64,32,3264"="On" ]
-Switch item=zmote_samsung_sendcode label="Samsung Power" mappings=[ "36000,2,1,32,32,64,32,32,64,32,3264"="On" ]
+Switch item=zmote_ir_sendcode label="Sony Power" mappings=[ "36000,2,1,32,32,64,32,32,64,32,3264"="On" ]
+Switch item=zmote_samsung_sendcode label="Sony Power" mappings=[ "36000,2,1,32,32,64,32,32,64,32,3264"="On" ]
 ```

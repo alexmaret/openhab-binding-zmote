@@ -8,48 +8,24 @@ import org.eclipse.jetty.client.util.StringContentProvider;
 import org.eclipse.jetty.http.HttpStatus;
 import org.openhab.binding.zmote.internal.exception.CommunicationException;
 import org.openhab.binding.zmote.internal.exception.DeviceBusyException;
-import org.openhab.binding.zmote.internal.exception.ZMoteBindingException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ZMoteV2Client implements IZMoteClient {
     private static final String SENDIR_SUCCESS = "completeir";
     private static final String SENDIR_BUSY = "busyIR";
     private static final String SENDIR_ERROR = "error";
 
-    private final Logger logger = LoggerFactory.getLogger(ZMoteV2Client.class);
+    // private final Logger logger = LoggerFactory.getLogger(ZMoteV2Client.class);
 
-    private final HttpClient httpClient = new HttpClient();
+    private final HttpClient httpClient;
     private final String baseUrl;
-    private final int timeout;
 
-    public ZMoteV2Client(final String baseUrl, final int timeout) {
+    public ZMoteV2Client(final HttpClient httpClient, final String baseUrl) {
+        this.httpClient = httpClient;
         this.baseUrl = baseUrl;
-        this.timeout = timeout;
     }
 
     @Override
-    public void dispose() {
-        try {
-            httpClient.stop();
-        } catch (final Exception e) {
-            if (logger.isErrorEnabled()) {
-                logger.error("Failed to dispose ZMote client!", e);
-            }
-        }
-    }
-
-    @Override
-    public void initialize() {
-        try {
-            httpClient.start();
-        } catch (final Exception e) {
-            throw new ZMoteBindingException("Failed to initialize HTTP client!", e);
-        }
-    }
-
-    @Override
-    public synchronized void sendir(final String uuid, final String code) {
+    public synchronized void sendir(final String uuid, final String code, final int timeout) {
         try {
             final String url = String.format("%s/v2/%s", baseUrl, uuid);
             final String msg = String.format("sendir,1:1,0,%s", code);

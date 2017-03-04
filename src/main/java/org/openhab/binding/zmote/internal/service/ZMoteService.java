@@ -2,16 +2,17 @@ package org.openhab.binding.zmote.internal.service;
 
 import java.io.File;
 import java.math.BigDecimal;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.eclipse.jetty.client.HttpClient;
 import org.openhab.binding.zmote.ZMoteBindingConstants;
 import org.openhab.binding.zmote.internal.config.IRCodeConfigurationCache;
 import org.openhab.binding.zmote.internal.config.RemoteConfiguration;
 import org.openhab.binding.zmote.internal.exception.CommunicationException;
 import org.openhab.binding.zmote.internal.exception.ConfigurationException;
 import org.openhab.binding.zmote.internal.exception.DeviceBusyException;
+import org.openhab.binding.zmote.internal.exception.ZMoteBindingException;
 import org.openhab.binding.zmote.internal.model.IRCode;
 import org.openhab.binding.zmote.internal.model.ZMoteConfig;
 import org.slf4j.Logger;
@@ -20,6 +21,9 @@ import org.slf4j.LoggerFactory;
 public class ZMoteService implements IZMoteService {
 
     private final Logger logger = LoggerFactory.getLogger(ZMoteService.class);
+
+    private final HttpClient httpClient = new HttpClient();
+
     private final Map<String, IZMoteClient> clients = new ConcurrentHashMap<>();
     private final Map<String, IRCodeConfigurationCache> files = new ConcurrentHashMap<>();
 
@@ -41,7 +45,16 @@ public class ZMoteService implements IZMoteService {
     @Override
     public boolean sendKey(final ZMoteConfig config, final String button, final int repeat) {
         final String configFile = config.getConfigFile();
-        final IRCodeConfigurationCache codesCache = registerOrLookupFile(configFile);
+
+        if (configFile == null) {
+            if (logger.isErrorEnabled()) {
+                logger.error("Cannot send button key {} to device {} as no configuration file has been set!",
+                        configFile, config.getUuid());
+            }
+            return false;
+        }
+
+        final IRCodeConfigurationCache codesCache = getOrCreateIRCodeCache(configFile);
         final IRCode code = codesCache.getCode(button);
 
         if (code == null) {
@@ -57,8 +70,17 @@ public class ZMoteService implements IZMoteService {
     @Override
     public synchronized void registerConfiguration(final ZMoteConfig config) {
         try {
-            registerOrLookupFile(config.getConfigFile());
-            registerOrLookupClient(config);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Registering ZMote device configuration: {}", config);
+            }
+
+            final String configFile = config.getConfigFile();
+
+            if (configFile != null) {
+                getOrCreateIRCodeCache(config.getConfigFile());
+            }
+
+            getOrCreateZmoteClient(config);
 
         } catch (final ConfigurationException e) {
             throw e;
@@ -70,6 +92,10 @@ public class ZMoteService implements IZMoteService {
 
     @Override
     public synchronized void unregisterConfiguration(final ZMoteConfig config) {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Unregistering ZMote device configuration: {}", config);
+        }
+
         final String uuid = config.getUuid();
         final String configFile = config.getConfigFile();
 
@@ -78,16 +104,19 @@ public class ZMoteService implements IZMoteService {
         }
 
         if (uuid != null) {
-            final IZMoteClient client = clients.get(uuid);
-
-            if (client != null) {
-                clients.remove(uuid);
-                client.dispose();
-            }
+            clients.remove(uuid);
         }
     }
 
     protected void activate() {
+        try {
+            httpClient.setFollowRedirects(true);
+            httpClient.start();
+
+        } catch (final Exception e) {
+            throw new ZMoteBindingException("Failed to start HTTP client!", e);
+        }
+
         if (logger.isDebugEnabled()) {
             logger.debug("ZMote service activated.");
         }
@@ -95,42 +124,38 @@ public class ZMoteService implements IZMoteService {
 
     protected void deactivate() {
 
+        files.clear();
+        clients.clear();
+
+        try {
+            httpClient.stop();
+
+        } catch (final Exception e) {
+            if (logger.isErrorEnabled()) {
+                logger.error("Failed to stop HTTP client!", e);
+            }
+        }
+
         if (logger.isDebugEnabled()) {
             logger.debug("ZMote service deactivated.");
         }
-
-        final Iterator<String> iterator = clients.keySet().iterator();
-
-        while (iterator.hasNext()) {
-            final IZMoteClient client = clients.get(iterator.next());
-
-            if (client != null) {
-                client.dispose();
-            }
-
-            iterator.remove();
-        }
     }
 
-    private IZMoteClient registerOrLookupClient(final ZMoteConfig config) {
+    private IZMoteClient getOrCreateZmoteClient(final ZMoteConfig config) {
 
         final String uuid = config.getUuid();
         IZMoteClient client = clients.get(uuid);
 
         if (client == null) {
             final String url = config.getUrl();
-            final BigDecimal timeout = config.getTimeout();
-            final int timeoutInt = (timeout != null) ? timeout.intValue() : ZMoteBindingConstants.DEFAULT_TIMEOUT;
-
-            client = new ZMoteV2Client(url, timeoutInt);
-            client.initialize();
+            client = new ZMoteV2Client(httpClient, url);
             clients.put(uuid, client);
         }
 
         return client;
     }
 
-    private IRCodeConfigurationCache registerOrLookupFile(final String configFile) {
+    private IRCodeConfigurationCache getOrCreateIRCodeCache(final String configFile) {
 
         IRCodeConfigurationCache cache;
 
@@ -144,6 +169,7 @@ public class ZMoteService implements IZMoteService {
 
         cache = new IRCodeConfigurationCache(new RemoteConfiguration(new File(configFile)));
         files.put(configFile, cache);
+
         return cache;
     }
 
@@ -151,7 +177,9 @@ public class ZMoteService implements IZMoteService {
         final BigDecimal configRetry = config.getRetry();
         final int retry = (configRetry != null) ? configRetry.intValue() : ZMoteBindingConstants.DEFAULT_RETRY;
         final String uuid = config.getUuid();
-        final IZMoteClient client = registerOrLookupClient(config);
+        final BigDecimal timeout = config.getTimeout();
+        final int timeoutInt = (timeout != null) ? timeout.intValue() : ZMoteBindingConstants.DEFAULT_TIMEOUT;
+        final IZMoteClient client = getOrCreateZmoteClient(config);
 
         boolean success = false;
 
@@ -161,7 +189,7 @@ public class ZMoteService implements IZMoteService {
 
             for (int j = 0; j <= retry; ++j) {
                 try {
-                    client.sendir(uuid, code.nextCode());
+                    client.sendir(uuid, code.nextCode(), timeoutInt);
                     success = true;
                     break;
                 } catch (final DeviceBusyException e) {
