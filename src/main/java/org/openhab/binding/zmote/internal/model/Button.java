@@ -3,6 +3,9 @@ package org.openhab.binding.zmote.internal.model;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * A button as returned from the remote configuration file.
+ */
 public class Button {
 
     @SerializedName("key")

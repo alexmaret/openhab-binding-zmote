@@ -2,6 +2,9 @@ package org.openhab.binding.zmote.internal.model;
 
 import java.math.BigDecimal;
 
+/**
+ * The configuration of a ZMote thing.
+ */
 public class ZMoteConfig {
 
     String configFile;

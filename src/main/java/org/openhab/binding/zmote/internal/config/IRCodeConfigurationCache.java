@@ -2,8 +2,10 @@ package org.openhab.binding.zmote.internal.config;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
+import org.apache.commons.lang.StringUtils;
 import org.openhab.binding.zmote.internal.exception.ConfigurationException;
 import org.openhab.binding.zmote.internal.model.Button;
 import org.openhab.binding.zmote.internal.model.IRCode;
@@ -27,8 +29,16 @@ public class IRCodeConfigurationCache {
     }
 
     public IRCode getCode(final String button) {
+
+        final String buttonKey = StringUtils.trimToNull(button);
+
+        if (buttonKey == null) {
+            throw new IllegalArgumentException("A button cannot be null or empty!");
+        }
+
         updateCache();
-        return codeCache.get(button);
+
+        return codeCache.get(buttonKey.toLowerCase(Locale.getDefault()));
     }
 
     private boolean updateCache() {
@@ -67,35 +77,20 @@ public class IRCodeConfigurationCache {
         }
 
         for (final Button button : buttons) {
-            final String name = cleanupValue(button.getKey());
-            final String code = cleanupValue(button.getCode());
-            final String tcode = cleanupValue(button.getTcode());
+            final String name = StringUtils.trimToNull(button.getKey());
+            final String code = StringUtils.trimToNull(button.getCode());
+            final String tcode = StringUtils.trimToNull(button.getTcode());
 
             if ((name == null) || (code == null)) {
-                if (logger.isErrorEnabled()) {
-                    logger.error("Skipping invalid button {} with code {}!", name, code);
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Skipping invalid button {} with code {} from configuration file!", name, code);
                 }
                 continue;
             }
 
-            codeCache.put(name, new IRCode(code, tcode));
+            codeCache.put(name.toLowerCase(Locale.getDefault()), new IRCode(code, tcode));
         }
 
         return wasEmpty ? !codeCache.isEmpty() : true;
-    }
-
-    private String cleanupValue(final String value) {
-
-        String result = value;
-
-        if (result != null) {
-            result = result.trim();
-
-            if (result.isEmpty()) {
-                result = null;
-            }
-        }
-
-        return result;
     }
 }

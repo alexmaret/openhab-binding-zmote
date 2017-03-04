@@ -5,10 +5,10 @@ import java.util.Collection;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
+/**
+ * A remote as read from the remote configuration file.
+ */
 public class Remote {
-    @SerializedName("_id")
-    private String id;
-
     @SerializedName("brand")
     private String brand;
 
@@ -20,14 +20,6 @@ public class Remote {
 
     @SerializedName("keys")
     private Collection<Button> buttons;
-
-    public String getId() {
-        return id;
-    }
-
-    public void setId(final String id) {
-        this.id = id;
-    }
 
     public String getBrand() {
         return brand;

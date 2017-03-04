@@ -1,5 +1,8 @@
 package org.openhab.binding.zmote.internal.model;
 
+/**
+ * A ZMote device as returned by the discovery service.
+ */
 public class ZMoteDevice {
 
     private final String make;
