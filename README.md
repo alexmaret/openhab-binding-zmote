@@ -38,9 +38,8 @@ zmote:zmt2:devicename [ uuid="CI00a1b2c4", configFile="/path/to/config.json", ur
   downloaded from the ZMote webapp. This should be the full path to the file, e.g. 
   "C:\OpenHAB\userdata\config\remote.json" on Windows or "/opt/openhab/userdata/config/remote.json" 
   on Unix systems.
-- **url** (required): The URL of the device. When configuring a Thing manually, you 
-  can set this to any value, e.g. http://127.0.0.1 as it will be overwritten by auto-discovery 
-  once the device becomes available.
+- **url** (optional): The URL of the device. When configuring a Thing manually, the
+  value will be overwritten by auto-discovery once the device becomes available.
 - **retry** (optional): The number of retries in case the device is busy (Default: 
   1).
 - **timeout** (optional): The time we wait in seconds until we give up connecting to 
@@ -59,8 +58,8 @@ in one minute intervals.
 
 **demo.things**
 ```
-zmote:zmt2:sony "Sony Remote" [ uuid="CI00a1b2c4", configFile="/opt/openhab/userdata/config/sony.json", url="http://10.10.10.10" ]
-zmote:zmt2:samsung "Samsung Remote" [ uuid="CI00a1b2c4", configFile="c:\OpenHAB\userdata\config\samsung.json", url="http://127.0.0.1" ]
+zmote:zmt2:sony "Sony Remote" [ uuid="CI00a1b2c4", configFile="/opt/openhab/userdata/config/sony.json" ]
+zmote:zmt2:samsung "Samsung Remote" [ uuid="CI00a1b2c4", configFile="c:\OpenHAB\userdata\config\samsung.json" ]
 ```
 
 **demo.items**
@@ -76,8 +75,8 @@ field in your configuration file.
 
 **demo.things**
 ```
-zmote:zmt2:sony "Sony Remote" [ uuid="CI00a1b2c4", configFile="/opt/openhab/userdata/config/sony.json", url="http://10.10.10.10" ]
-zmote:zmt2:samsung "Samsung Remote" [ uuid="CI00a1b2c4", configFile="c:\OpenHAB\userdata\config\samsung.json", url="http://127.0.0.1" ]
+zmote:zmt2:sony "Sony Remote" [ uuid="CI00a1b2c4", configFile="/opt/openhab/userdata/config/sony.json" ]
+zmote:zmt2:samsung "Samsung Remote" [ uuid="CI00a1b2c4", configFile="c:\OpenHAB\userdata\config\samsung.json" ]
 ```
 
 **demo.items**
@@ -99,8 +98,8 @@ Allows you to send any IR code.
 
 **demo.things**
 ```
-zmote:zmt2:ir "Any Remote" [ uuid="CI00a1b2c4", url="http://10.10.10.10" ]
-zmote:zmt2:samsung "Samsung Remote" [ uuid="CI00a1b2c4", configFile="c:\OpenHAB\userdata\config\samsung.json", url="http://127.0.0.1" ]
+zmote:zmt2:ir "Any Remote" [ uuid="CI00a1b2c4" ]
+zmote:zmt2:samsung "Samsung Remote" [ uuid="CI00a1b2c4", configFile="c:\OpenHAB\userdata\config\samsung.json" ]
 ```
 
 **demo.items**

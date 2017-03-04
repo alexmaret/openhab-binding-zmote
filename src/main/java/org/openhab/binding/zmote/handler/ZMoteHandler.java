@@ -62,14 +62,15 @@ public class ZMoteHandler extends BaseThingHandler {
     @Override
     public void initialize() {
         try {
+            startStatusUpdateWorker();
+
             final ZMoteConfig config = getZMoteConfigValidated();
             registerDeviceConfiguration(config);
-            startStatusUpdateWorker();
             updateOnlineStatus(config);
             updateOnlineState(config);
 
         } catch (final Exception e) {
-            stopStatusUpdateWorker();
+            // stopStatusUpdateWorker();
             updateStatusFromException(e);
         }
     }
@@ -170,12 +171,9 @@ public class ZMoteHandler extends BaseThingHandler {
     private ZMoteConfig getZMoteConfigValidated() {
         final ZMoteConfig config = getZMoteConfig();
 
-        // if (StringUtils.trimToNull(config.getConfigFile()) == null) {
-        // throw new ConfigurationException("A configuration file needs to be provided to use this thing.");
-        // }
-
         if (StringUtils.trimToNull(config.getUrl()) == null) {
-            throw new ConfigurationException("A URL has to be set to use this thing.");
+            throw new CommunicationException(
+                    "The device has not been discovered and an URL has not been set in its thing configuration.");
         }
 
         return config;

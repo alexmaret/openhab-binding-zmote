@@ -23,7 +23,7 @@
                 <description>The path to the configuration file for the remote.</description>
             </parameter>
 
-            <parameter name="uuid" type="text" required="false">
+            <parameter name="uuid" type="text" required="true">
                 <label>UUID</label>
                 <description>The unique ID of the ZMote device.</description>
             </parameter>
