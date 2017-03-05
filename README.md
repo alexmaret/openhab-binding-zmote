@@ -29,7 +29,7 @@ When configuring your device manually, be aware that some options have to be pro
 as numbers, i.e. without quotation marks.
 
 ```
-zmote:zmt2:devicename [ uuid="CI00a1b2c4", configFile="/path/to/config.json", url="http://10.10.10.10", retry=1, timeout=5 ]
+zmote:zmt2:devicename [ uuid="CI00a1b2c4", configFile="/path/to/config.json", overrideUrl="http://10.10.10.10", retry=1, timeout=5 ]
 ```
 
 - **uuid** (required): The unique ID of your ZMote device. You can get this id by checking 
@@ -37,9 +37,10 @@ zmote:zmt2:devicename [ uuid="CI00a1b2c4", configFile="/path/to/config.json", ur
 - **configFile** (optional): The configuration file which contains the IR configuration 
   downloaded from the ZMote webapp. This should be the full path to the file, e.g. 
   "C:\OpenHAB\userdata\config\remote.json" on Windows or "/opt/openhab/userdata/config/remote.json" 
-  on Unix systems.
-- **url** (optional): The URL of the device. When configuring a Thing manually, the
-  value will be overwritten by auto-discovery once the device becomes available.
+  on Unix systems. If no configuration file is provided, only the "sendcode" channel can be used.
+- **overrideUrl** (optional): The URL of the ZMote device. This can be used to override
+  auto-discovery in case the device is in a different network segment and cannot be auto-discovered
+  with UDP multicasts. If auto-discovery works, this option should not be set.
 - **retry** (optional): The number of retries in case the device is busy (Default: 
   1).
 - **timeout** (optional): The time we wait in seconds until we give up connecting to 

@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.lang.StringUtils;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -65,11 +64,8 @@ public class ZMoteHandler extends BaseThingHandler {
 
             final ZMoteConfig config = getZMoteConfig();
             registerDeviceConfiguration(config);
-            updateThingOnlineStatus(config);
-            updateChannelOnlineState(config);
 
         } catch (final Exception e) {
-            // stopStatusUpdateWorker();
             updateStatusFromException(e);
         }
     }
@@ -159,36 +155,38 @@ public class ZMoteHandler extends BaseThingHandler {
             throw new ConfigurationException("Failed to read thing configuration!");
         }
 
-        // make sure we have at least a valid UUID
-        if (StringUtils.trimToNull(config.getUuid()) == null) {
+        config.setAutoUrl(getThing().getProperties().get(ZMoteBindingConstants.PROP_URL));
+
+        return config;
+    }
+
+    private ZMoteConfig getZMoteConfigValidated() {
+        final ZMoteConfig config = getZMoteConfig();
+
+        if (config.getUuid() == null) {
             throw new ConfigurationException("Thing has no UUID set!");
         }
 
-        // update URL if it has not been set by the user
-        if (StringUtils.trimToNull(config.getUrl()) == null) {
-            config.setUrl(getThing().getProperties().get(ZMoteBindingConstants.PROP_URL));
-        }
-
         if (config.getUrl() == null) {
-            throw new CommunicationException(
-                    "The device has not been discovered yet and an URL has not been set in its thing configuration.");
+            throw new CommunicationException("The device has not yet been discovered!");
         }
 
         return config;
     }
 
-    private String getZMoteUuid() {
-        final String uuid = (String) getConfig().get(ZMoteBindingConstants.CONFIG_UUID);
-
-        if (StringUtils.trimToNull(uuid) == null) {
-            throw new ConfigurationException("The thing does not have a UUID set.");
-        }
-
-        return uuid;
-    }
-
     private boolean isThingOnline() {
         return ThingStatus.ONLINE.equals(getThing().getStatus());
+    }
+
+    private boolean isZMoteOnline(final ZMoteConfig config) {
+
+        final String overrideUrl = config.getOverrideUrl();
+
+        if ((overrideUrl != null) && !overrideUrl.isEmpty()) {
+            return ((zmoteService != null) && zmoteService.checkOnline(config));
+        }
+
+        return ((zmoteDiscoveryService != null) && zmoteDiscoveryService.isOnline(config.getUuid()));
     }
 
     private void registerDeviceConfiguration(final ZMoteConfig config) {
@@ -221,11 +219,7 @@ public class ZMoteHandler extends BaseThingHandler {
         final Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                try {
-                    updateStatusAndConfigurationFromDiscoveryService();
-                } catch (final Exception e) {
-                    updateStatusFromException(e);
-                }
+                updateStatusFromDiscoveryService();
             }
         };
 
@@ -247,9 +241,7 @@ public class ZMoteHandler extends BaseThingHandler {
     }
 
     private void updateChannelOnlineState(final ZMoteConfig config) {
-        final String uuid = config.getUuid();
-
-        if ((zmoteDiscoveryService != null) && zmoteDiscoveryService.isOnline(uuid)) {
+        if (isThingOnline()) {
             updateState(ZMoteBindingConstants.CHANNEL_ONLINE, OnOffType.ON);
         } else {
             updateState(ZMoteBindingConstants.CHANNEL_ONLINE, OnOffType.OFF);
@@ -261,7 +253,7 @@ public class ZMoteHandler extends BaseThingHandler {
         final ThingStatus thingStatus = thingStatusInfo.getStatus();
         final ThingStatusDetail thingStatusDetail = thingStatusInfo.getStatusDetail();
 
-        if ((zmoteDiscoveryService == null) || !zmoteDiscoveryService.isOnline(zmoteConfig.getUuid())) {
+        if (!isZMoteOnline(zmoteConfig)) {
             updateStatus(ThingStatus.OFFLINE);
             return;
         }
@@ -269,13 +261,15 @@ public class ZMoteHandler extends BaseThingHandler {
         if (ThingStatus.OFFLINE.equals(thingStatus)) {
             if (ThingStatusDetail.CONFIGURATION_ERROR.equals(thingStatusDetail)) {
                 try {
-                    getZMoteConfig();
+                    getZMoteConfigValidated();
                 } catch (final Exception e) {
-                    return; // config is still invalid
+                    return; // still invalid
                 }
 
             } else if (ThingStatusDetail.COMMUNICATION_ERROR.equals(thingStatusDetail)) {
-                // TODO try to talk to the device using a REST call before setting it online again
+                if ((zmoteService != null) && !zmoteService.checkOnline(zmoteConfig)) {
+                    return; // still offline
+                }
             }
         }
 
@@ -295,22 +289,28 @@ public class ZMoteHandler extends BaseThingHandler {
         updateProperties(properties);
     }
 
-    private void updateStatusAndConfigurationFromDiscoveryService() {
+    private void updateStatusFromDiscoveryService() {
 
-        if (zmoteDiscoveryService == null) {
-            return; // no discovery service available right now
+        try {
+            if (zmoteDiscoveryService == null) {
+                return; // no discovery service available right now
+            }
+
+            ZMoteConfig zmoteConfig = getZMoteConfig(); // config might not be valid yet without discovery
+            final ZMoteDevice zmoteDevice = zmoteDiscoveryService.getDevice(zmoteConfig.getUuid());
+
+            if (zmoteDevice != null) {
+                updateThingProperties(zmoteDevice);
+                zmoteConfig = getZMoteConfigValidated();
+            }
+
+            // thing has to be updated first, then the channel!
+            updateThingOnlineStatus(zmoteConfig);
+            updateChannelOnlineState(zmoteConfig);
+
+        } catch (final Exception e) {
+            updateStatusFromException(e);
         }
-
-        final String uuid = getZMoteUuid();
-        final ZMoteDevice zmoteDevice = zmoteDiscoveryService.getDevice(uuid);
-
-        if (zmoteDevice != null) {
-            updateThingProperties(zmoteDevice);
-        }
-
-        final ZMoteConfig zmoteConfig = getZMoteConfig();
-        updateChannelOnlineState(zmoteConfig);
-        updateThingOnlineStatus(zmoteConfig);
     }
 
     private void updateStatusFromException(final Exception e) {

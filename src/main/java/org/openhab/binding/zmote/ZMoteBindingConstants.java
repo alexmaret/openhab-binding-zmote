@@ -37,13 +37,13 @@ public class ZMoteBindingConstants {
 
     public final static String CONFIG_UUID = "uuid";
     public final static String CONFIG_FILE = "configFile";
-    public final static String CONFIG_URL = "url";
+    public final static String CONFIG_URL = "overrideUrl";
     public final static String CONFIG_RETRY = "retry";
     public final static String CONFIG_TIMEOUT = "timeout";
     public final static String CONFIG_REMOTE = "remote";
 
     public static final String PROP_UUID = CONFIG_UUID;
-    public static final String PROP_URL = CONFIG_URL;
+    public static final String PROP_URL = "url";
     public static final String PROP_MAKE = "make";
     public static final String PROP_MODEL = "model";
     public static final String PROP_REVISION = "revision";

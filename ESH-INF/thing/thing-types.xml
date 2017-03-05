@@ -28,7 +28,7 @@
                 <description>The unique ID of the ZMote device.</description>
             </parameter>
 
-            <parameter name="url" type="text" required="false">
+            <parameter name="overrideUrl" type="text" required="false">
                 <label>Device URL</label>
                 <description>The URL of the ZMote if auto-discovery should not be used.</description>
             </parameter>

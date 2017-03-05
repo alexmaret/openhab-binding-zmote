@@ -7,11 +7,20 @@ import java.math.BigDecimal;
  */
 public class ZMoteConfig {
 
+    String autoUrl;
     String configFile;
+    String overrideUrl;
     BigDecimal retry;
     BigDecimal timeout;
-    String url;
     String uuid;
+
+    public String getAutoUrl() {
+        return autoUrl;
+    }
+
+    public void setAutoUrl(final String autoUrl) {
+        this.autoUrl = autoUrl;
+    }
 
     public String getConfigFile() {
         return configFile;
@@ -19,6 +28,14 @@ public class ZMoteConfig {
 
     public void setConfigFile(final String configFile) {
         this.configFile = configFile;
+    }
+
+    public String getOverrideUrl() {
+        return overrideUrl;
+    }
+
+    public void setOverrideUrl(final String overrideUrl) {
+        this.overrideUrl = overrideUrl;
     }
 
     public BigDecimal getRetry() {
@@ -38,11 +55,10 @@ public class ZMoteConfig {
     }
 
     public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(final String url) {
-        this.url = url;
+        if ((overrideUrl != null) && !overrideUrl.isEmpty()) {
+            return overrideUrl;
+        }
+        return autoUrl;
     }
 
     public String getUuid() {
@@ -59,7 +75,8 @@ public class ZMoteConfig {
 
         stringBuilder.append("ZMoteConfig [");
         stringBuilder.append(" uuid=\"").append(uuid).append("\",");
-        stringBuilder.append(" url=\"").append(url).append("\",");
+        stringBuilder.append(" autoUrl=\"").append(autoUrl).append("\",");
+        stringBuilder.append(" overrideUrl=\"").append(overrideUrl).append("\",");
         stringBuilder.append(" configFile=\"").append(configFile).append("\",");
         stringBuilder.append(" retry=\"").append(retry).append("\"");
         stringBuilder.append(" timeout=\"").append(timeout).append("\"");

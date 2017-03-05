@@ -28,6 +28,19 @@ public class ZMoteService implements IZMoteService {
     private final Map<String, IRCodeConfigurationCache> files = new ConcurrentHashMap<>();
 
     @Override
+    public boolean checkOnline(final ZMoteConfig config) {
+        final IZMoteClient client = findOrCreateZmoteClient(config);
+
+        try {
+            client.check(getTimeout(config));
+            return true;
+
+        } catch (final CommunicationException e) {
+            return false;
+        }
+    }
+
+    @Override
     public boolean sendCode(final ZMoteConfig config, final String code) {
         return sendCode(config, code, 1);
     }
@@ -54,7 +67,7 @@ public class ZMoteService implements IZMoteService {
             return false;
         }
 
-        final IRCodeConfigurationCache codesCache = getOrCreateIRCodeCache(configFile);
+        final IRCodeConfigurationCache codesCache = findOrCreateIRCodeCache(configFile);
         final IRCode code = codesCache.getCode(button);
 
         if (code == null) {
@@ -77,10 +90,12 @@ public class ZMoteService implements IZMoteService {
             final String configFile = config.getConfigFile();
 
             if (configFile != null) {
-                getOrCreateIRCodeCache(config.getConfigFile());
+                findOrCreateIRCodeCache(configFile);
             }
 
-            getOrCreateZmoteClient(config);
+            if (config.getUrl() != null) {
+                findOrCreateZmoteClient(config);
+            }
 
         } catch (final ConfigurationException e) {
             throw e;
@@ -141,13 +156,22 @@ public class ZMoteService implements IZMoteService {
         }
     }
 
-    private IZMoteClient getOrCreateZmoteClient(final ZMoteConfig config) {
+    private IZMoteClient findOrCreateZmoteClient(final ZMoteConfig config) {
 
         final String uuid = config.getUuid();
+        final String url = config.getUrl();
+
+        if ((uuid == null) || (url == null)) {
+            throw new IllegalArgumentException("Invalid ZMote configuration provided!");
+        }
+
         IZMoteClient client = clients.get(uuid);
 
+        if ((client != null) && !url.equals(client.getUrl())) {
+            client = null; // URL changed
+        }
+
         if (client == null) {
-            final String url = config.getUrl();
             client = new ZMoteV2Client(httpClient, url, uuid);
             clients.put(uuid, client);
         }
@@ -155,7 +179,7 @@ public class ZMoteService implements IZMoteService {
         return client;
     }
 
-    private IRCodeConfigurationCache getOrCreateIRCodeCache(final String configFile) {
+    private IRCodeConfigurationCache findOrCreateIRCodeCache(final String configFile) {
 
         IRCodeConfigurationCache cache;
 
@@ -173,13 +197,21 @@ public class ZMoteService implements IZMoteService {
         return cache;
     }
 
-    private boolean transmitCode(final ZMoteConfig config, final IRCode code, final int repeat) {
+    private int getRetry(final ZMoteConfig config) {
         final BigDecimal configRetry = config.getRetry();
-        final int retry = (configRetry != null) ? configRetry.intValue() : ZMoteBindingConstants.DEFAULT_RETRY;
-        final String uuid = config.getUuid();
+        return (configRetry != null) ? configRetry.intValue() : ZMoteBindingConstants.DEFAULT_RETRY;
+    }
+
+    private int getTimeout(final ZMoteConfig config) {
         final BigDecimal timeout = config.getTimeout();
-        final int timeoutInt = (timeout != null) ? timeout.intValue() : ZMoteBindingConstants.DEFAULT_TIMEOUT;
-        final IZMoteClient client = getOrCreateZmoteClient(config);
+        return (timeout != null) ? timeout.intValue() : ZMoteBindingConstants.DEFAULT_TIMEOUT;
+    }
+
+    private boolean transmitCode(final ZMoteConfig config, final IRCode code, final int repeat) {
+        final String uuid = config.getUuid();
+        final int retry = getRetry(config);
+        final int timeoutInt = getTimeout(config);
+        final IZMoteClient client = findOrCreateZmoteClient(config);
 
         boolean success = false;
 

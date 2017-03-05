@@ -56,6 +56,11 @@ public class ZMoteV2Client implements IZMoteClient {
     }
 
     @Override
+    public String getUrl() {
+        return baseUrl;
+    }
+
+    @Override
     public synchronized void sendir(final String code, final int timeout) {
         try {
             final String url = String.format("%s/v2/%s", baseUrl, uuid);

@@ -8,6 +8,11 @@ public interface IZMoteClient {
     void check(int timeout);
 
     /**
+     * @return the URL used by this client.
+     */
+    String getUrl();
+
+    /**
      * Sends the given IR code to the device.
      *
      * @param code The IR code to send.

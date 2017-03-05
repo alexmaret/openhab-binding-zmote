@@ -5,6 +5,17 @@ import org.openhab.binding.zmote.internal.model.ZMoteConfig;
 public interface IZMoteService {
 
     /**
+     * Checks if the device is online.
+     *
+     * @param config The device configuration.
+     *
+     * @return True if the device is online, else false.
+     *
+     * @throws ConfigurationException if the configuration is invalid.
+     */
+    boolean checkOnline(ZMoteConfig config);
+
+    /**
      * Sends the given IR code to the device.
      *
      * @param config The device configuration.
