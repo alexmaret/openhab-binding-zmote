@@ -3,12 +3,9 @@ package org.openhab.binding.zmote.internal.discovery;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
-import java.net.SocketTimeoutException;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
@@ -18,16 +15,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.eclipse.smarthome.core.common.ThreadPoolManager;
-import org.openhab.binding.zmote.ZMoteBindingConstants;
 import org.openhab.binding.zmote.internal.model.ZMoteDevice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
 
-    private static final int SOCKET_PORT = 9131;
-    private static final int SOCKET_TIMEOUT = 10000;
+    private static final int RESTART_INTERVAL = 60000;
+    private static final int LAST_SEEN_THRESHOLD = 60000;
 
+    private static final int DISCOVERY_SOCKET_PORT = 9131;
     private static final String MCAST_GROUP = "::ffff:239.255.250.250";
     private static final int MCAST_REQ_PORT = 9130;
     private static final String MCAST_REQ_PREFIX = "SENDAMXB";
@@ -44,25 +41,17 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
     private static final String ZMOTE_MAKE = "zmote.io";
 
     private final Logger logger = LoggerFactory.getLogger(ZMoteDiscoveryService.class);
-    private final Map<String, ZMoteDevice> discoveredDevices = new ConcurrentHashMap<>();
-    private final DeviceDiscoveryListener discoveredDevicesListener = new DeviceDiscoveryListener(discoveredDevices);
-    private final List<IDiscoveryListener> listeners = new CopyOnWriteArrayList<>();
 
-    private final ScheduledExecutorService scheduler = ThreadPoolManager
-            .getScheduledPool(ZMoteDiscoveryService.class.getName());
+    private final Map<String, ZMoteDiscoveryResult> discoveryResults = new ConcurrentHashMap<>();
+    private final List<IDiscoveryListener> discoveryListeners = new CopyOnWriteArrayList<>();
 
+    private ScheduledExecutorService scheduler = null;
     private ScheduledFuture<?> discoveryFuture = null;
-    private ScheduledFuture<?> timeoutFuture = null;
-
-    private MulticastSocket socket = null;
-
-    public ZMoteDiscoveryService() {
-        listeners.add(discoveredDevicesListener);
-    }
+    private MulticastSocket discoverySocket = null;
 
     @Override
     public void addListener(final IDiscoveryListener listener) {
-        listeners.add(listener);
+        discoveryListeners.add(listener);
     }
 
     @Override
@@ -71,102 +60,98 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
             return null;
         }
 
-        return discoveredDevices.get(uuid);
+        final ZMoteDiscoveryResult zmoteDiscoveryResult = discoveryResults.get(uuid);
+
+        if (zmoteDiscoveryResult == null) {
+            return null;
+        }
+
+        // make sure this device is not too old
+        final long currentTime = System.currentTimeMillis();
+        final long discoveryTime = zmoteDiscoveryResult.getLastSeen().getTime();
+
+        if ((currentTime - discoveryTime) > LAST_SEEN_THRESHOLD) {
+            discoveryResults.remove(uuid);
+            return null; // too old
+        }
+
+        return zmoteDiscoveryResult.getDevice();
     }
 
     @Override
     public boolean isOnline(final String uuid) {
-        return discoveredDevices.containsKey(uuid);
+        return (getDevice(uuid) != null);
     }
 
     @Override
     public void removeListener(final IDiscoveryListener listener) {
-        listeners.remove(listener);
+        discoveryListeners.remove(listener);
     }
 
     @Override
-    public synchronized void startDiscovery() {
+    public synchronized void startScan() {
+        MulticastSocket scanSocket = null;
+
         try {
-            if (discoveryFuture != null) {
-                return; // discovery already running
-            }
-
-            notifyStarted();
-
-            discoveryFuture = scheduler.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    executeDiscovery();
-                }
-            }, 0, TimeUnit.SECONDS);
-
-            timeoutFuture = scheduler.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    stopDiscovery();
-                }
-            }, ZMoteBindingConstants.DISCOVERY_TIMEOUT, TimeUnit.SECONDS);
+            final InetAddress inetAddress = InetAddress.getByName(MCAST_GROUP);
+            scanSocket = new MulticastSocket(0);
+            scanSocket.setReuseAddress(true);
+            scanSocket.joinGroup(inetAddress);
+            scanSocket.send(new DatagramPacket(MCAST_REQ_PREFIX.getBytes(), MCAST_REQ_PREFIX.length(), inetAddress,
+                    MCAST_REQ_PORT));
 
         } catch (final Exception e) {
             if (logger.isErrorEnabled()) {
-                logger.error("Failed to start ZMote discovery!", e);
+                logger.error("Failed to scan for ZMote devices!", e);
             }
-            stopDiscovery();
+
+        } finally {
+            safeClose(scanSocket);
         }
     }
 
-    @Override
-    public synchronized void stopDiscovery() {
-        if ((discoveryFuture != null) && !discoveryFuture.isCancelled()) {
-            discoveryFuture.cancel(true);
-            discoveryFuture = null;
-        }
-
-        if ((timeoutFuture != null) && !timeoutFuture.isCancelled()) {
-            timeoutFuture.cancel(true);
-            timeoutFuture = null;
-        }
-
-        safeCloseSocket(); // terminates receive() call on the socket
-        notifyFinished();
-    }
-
-    private void notifyDiscovery(final ZMoteDevice device) {
-        for (final IDiscoveryListener listener : listeners) {
-            try {
-                listener.deviceDiscovered(device);
-
-            } catch (final Exception e) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Exception while notifying discovery listener.", e);
-                }
+    protected void activate() {
+        try {
+            if (scheduler != null) {
+                deactivate();
             }
+
+            scheduler = ThreadPoolManager.getScheduledPool(ZMoteDiscoveryService.class.getName());
+            startDiscoveryFuture();
+            startScan();
+
+            if (logger.isDebugEnabled()) {
+                logger.debug("Activated ZMote discovery service.");
+            }
+
+        } catch (final RuntimeException e) {
+            if (logger.isErrorEnabled()) {
+                logger.error("Failed to activate ZMote discovery service!", e);
+            }
+            deactivate();
+            throw e;
         }
     }
 
-    private void notifyFinished() {
-        for (final IDiscoveryListener listener : listeners) {
-            try {
-                listener.discoveryFinished();
-
-            } catch (final Exception e) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Exception while notifying discovery listener.", e);
-                }
+    protected void deactivate() {
+        try {
+            if (scheduler != null) {
+                scheduler.shutdown();
             }
-        }
-    }
 
-    private void notifyStarted() {
-        for (final IDiscoveryListener listener : listeners) {
-            try {
-                listener.discoveryStarted();
+            stopDiscoveryFuture();
 
-            } catch (final Exception e) {
-                if (logger.isDebugEnabled()) {
-                    logger.debug("Exception while notifying discovery listener.", e);
-                }
+            if (logger.isDebugEnabled()) {
+                logger.debug("Deactivated ZMote discovery service.");
             }
+
+        } catch (final Exception e) {
+            if (logger.isErrorEnabled()) {
+                logger.error("Ignored exception while deactivating ZMote discovery service.", e);
+            }
+
+        } finally {
+            scheduler = null;
         }
     }
 
@@ -174,28 +159,30 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
         try {
             final InetAddress inetAddress = InetAddress.getByName(MCAST_GROUP);
             final byte[] datagramBuffer = new byte[512];
-            socket = new MulticastSocket(SOCKET_PORT);
-            socket.joinGroup(inetAddress);
-            socket.setSoTimeout(SOCKET_TIMEOUT);
-            socket.send(new DatagramPacket(MCAST_REQ_PREFIX.getBytes(), MCAST_REQ_PREFIX.length(), inetAddress,
-                    MCAST_REQ_PORT));
+
+            discoverySocket = new MulticastSocket(DISCOVERY_SOCKET_PORT);
+            discoverySocket.setSoTimeout(0);
+            discoverySocket.setReuseAddress(true);
+            discoverySocket.joinGroup(inetAddress);
 
             while (!Thread.currentThread().isInterrupted()) {
                 final DatagramPacket recv = new DatagramPacket(datagramBuffer, datagramBuffer.length);
 
-                try {
-                    socket.receive(recv);
-                } catch (final SocketTimeoutException e) {
-                    return; // no more devices responded
-                }
+                discoverySocket.receive(recv);
 
                 final String responseMessage = new String(recv.getData(), recv.getOffset(), recv.getLength());
                 final ZMoteDevice zmoteDevice = parseDiscoveryResponse(responseMessage);
 
                 if (zmoteDevice != null) {
+                    discoveryResults.put(zmoteDevice.getUuid(), new ZMoteDiscoveryResult(zmoteDevice));
                     notifyDiscovery(zmoteDevice);
+
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Discovered ZMote device: {}", zmoteDevice.toString());
+                    }
+
                 } else if (logger.isDebugEnabled()) {
-                    logger.debug("Failed to parse discovery response: {}", responseMessage);
+                    logger.debug("Discovered unsupported device: {}", responseMessage);
                 }
             }
 
@@ -204,7 +191,20 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
                 logger.error("ZMote device discovery failed or has been aborted!", e);
             }
         } finally {
-            safeCloseSocket();
+            safeCloseDiscoverySocket();
+        }
+    }
+
+    private void notifyDiscovery(final ZMoteDevice device) {
+        for (final IDiscoveryListener listener : discoveryListeners) {
+            try {
+                listener.deviceDiscovered(device);
+
+            } catch (final Exception e) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Exception while notifying discovery listener.", e);
+                }
+            }
         }
     }
 
@@ -236,62 +236,83 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
         return new ZMoteDevice(make, type, model, revision, uuid, url);
     }
 
-    private void safeCloseSocket() {
+    private void safeClose(final MulticastSocket multicastSocket) {
         try {
-            if (socket != null) {
-                socket.close();
+            if (multicastSocket != null) {
+                multicastSocket.close();
             }
         } catch (final RuntimeException e) {
             if (logger.isDebugEnabled()) {
-                logger.debug("Ignored exception while safe-closing socket.", e);
+                logger.debug("Ignored exception while safe-closing multicast socket.", e);
             }
-        } finally {
-            socket = null;
         }
     }
 
-    private static class DeviceDiscoveryListener implements IDiscoveryListener {
-
-        private final Map<String, ZMoteDevice> activeDevices;
-        private final Map<String, ZMoteDevice> discoveredDevices = new HashMap<>();
-
-        public DeviceDiscoveryListener(final Map<String, ZMoteDevice> activeDevices) {
-            this.activeDevices = activeDevices;
+    private void safeCloseDiscoverySocket() {
+        try {
+            safeClose(discoverySocket);
+        } finally {
+            discoverySocket = null;
         }
+    }
 
-        @Override
-        public void deviceDiscovered(final ZMoteDevice device) {
-            discoveredDevices.put(device.getUuid(), device);
-        }
-
-        @Override
-        public void discoveryFinished() {
-            final Set<String> activeUuids = activeDevices.keySet();
-            final Set<String> discoveredUuids = discoveredDevices.keySet();
-
-            // remove inactive devices
-            final Iterator<String> activeIterator = activeUuids.iterator();
-
-            while (activeIterator.hasNext()) {
-                if (!discoveredUuids.contains(activeIterator.next())) {
-                    activeIterator.remove();
-                }
+    private synchronized void startDiscoveryFuture() {
+        try {
+            if ((discoveryFuture != null) && !discoveryFuture.isDone()) {
+                return; // already running
             }
 
-            // add newly discovered devices
-            final Iterator<String> discoveredIterator = discoveredUuids.iterator();
+            stopDiscoveryFuture(); // cleanup
 
-            while (discoveredIterator.hasNext()) {
-                final String discoveredUuid = discoveredIterator.next();
-                if (!activeUuids.contains(discoveredUuid)) {
-                    activeDevices.put(discoveredUuid, discoveredDevices.get(discoveredUuid));
+            discoveryFuture = scheduler.scheduleWithFixedDelay(new Runnable() {
+                @Override
+                public void run() {
+                    executeDiscovery();
                 }
+            }, 0, RESTART_INTERVAL, TimeUnit.MILLISECONDS);
+
+        } catch (final Exception e) {
+            if (logger.isErrorEnabled()) {
+                logger.error("Failed to start ZMote discovery!", e);
             }
+            stopDiscoveryFuture();
+        }
+    }
+
+    private synchronized void stopDiscoveryFuture() {
+        try {
+            if ((discoveryFuture != null) && !discoveryFuture.isCancelled()) {
+                discoveryFuture.cancel(true);
+            }
+
+        } catch (final Exception e) {
+            if (logger.isErrorEnabled()) {
+                logger.error("Ignored exception while stopping discovery future!", e);
+            }
+
+        } finally {
+            safeCloseDiscoverySocket(); // terminates receive() call on the socket
+            discoveryFuture = null;
+            discoveryResults.clear();
+        }
+    }
+
+    private static class ZMoteDiscoveryResult {
+
+        private final Date lastSeen;
+        private final ZMoteDevice device;
+
+        public ZMoteDiscoveryResult(final ZMoteDevice device) {
+            this.lastSeen = new Date();
+            this.device = device;
         }
 
-        @Override
-        public void discoveryStarted() {
-            discoveredDevices.clear();
+        public ZMoteDevice getDevice() {
+            return device;
+        }
+
+        public Date getLastSeen() {
+            return lastSeen;
         }
     }
 }

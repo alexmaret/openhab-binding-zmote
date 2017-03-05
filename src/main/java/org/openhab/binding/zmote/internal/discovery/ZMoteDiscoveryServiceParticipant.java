@@ -52,7 +52,7 @@ public class ZMoteDiscoveryServiceParticipant extends AbstractDiscoveryService
         }
 
         if (zmoteDiscovery != null) {
-            zmoteDiscovery.startDiscovery();
+            zmoteDiscovery.startScan();
         } else {
             if (logger.isWarnEnabled()) {
                 logger.warn("Cannot start discovery as the servie is not yet available!");
@@ -85,16 +85,6 @@ public class ZMoteDiscoveryServiceParticipant extends AbstractDiscoveryService
     }
 
     @Override
-    public void discoveryFinished() {
-        // we do not care
-    }
-
-    @Override
-    public void discoveryStarted() {
-        // we do not care
-    }
-
-    @Override
     public void setDiscoveryServiceCallback(final DiscoveryServiceCallback discoveryServiceCallback) {
         this.discoveryServiceCallback = discoveryServiceCallback;
 
@@ -117,10 +107,6 @@ public class ZMoteDiscoveryServiceParticipant extends AbstractDiscoveryService
         if (backgroundDiscoveryFuture != null) {
             backgroundDiscoveryFuture.cancel(true);
             backgroundDiscoveryFuture = null;
-
-            if (zmoteDiscovery != null) {
-                zmoteDiscovery.stopDiscovery();
-            }
         }
     }
 
