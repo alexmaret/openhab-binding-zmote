@@ -148,7 +148,7 @@ public class ZMoteService implements IZMoteService {
 
         if (client == null) {
             final String url = config.getUrl();
-            client = new ZMoteV2Client(httpClient, url);
+            client = new ZMoteV2Client(httpClient, url, uuid);
             clients.put(uuid, client);
         }
 
@@ -189,7 +189,7 @@ public class ZMoteService implements IZMoteService {
 
             for (int j = 0; j <= retry; ++j) {
                 try {
-                    client.sendir(uuid, code.nextCode(), timeoutInt);
+                    client.sendir(code.nextCode(), timeoutInt);
                     success = true;
                     break;
                 } catch (final DeviceBusyException e) {

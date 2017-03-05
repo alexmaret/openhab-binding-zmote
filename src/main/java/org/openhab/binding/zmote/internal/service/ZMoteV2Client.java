@@ -1,5 +1,6 @@
 package org.openhab.binding.zmote.internal.service;
 
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import org.eclipse.jetty.client.HttpClient;
@@ -7,7 +8,9 @@ import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.util.StringContentProvider;
 import org.eclipse.jetty.http.HttpStatus;
 import org.openhab.binding.zmote.internal.exception.CommunicationException;
+import org.openhab.binding.zmote.internal.exception.ConfigurationException;
 import org.openhab.binding.zmote.internal.exception.DeviceBusyException;
+import org.openhab.binding.zmote.internal.exception.ZMoteBindingException;
 
 public class ZMoteV2Client implements IZMoteClient {
     private static final String SENDIR_SUCCESS = "completeir";
@@ -18,14 +21,42 @@ public class ZMoteV2Client implements IZMoteClient {
 
     private final HttpClient httpClient;
     private final String baseUrl;
+    private final String uuid;
 
-    public ZMoteV2Client(final HttpClient httpClient, final String baseUrl) {
+    public ZMoteV2Client(final HttpClient httpClient, final String baseUrl, final String uuid) {
         this.httpClient = httpClient;
         this.baseUrl = baseUrl;
+        this.uuid = uuid;
     }
 
     @Override
-    public synchronized void sendir(final String uuid, final String code, final int timeout) {
+    public synchronized void check(final int timeout) {
+        try {
+            final String url = String.format("%s/uuid", baseUrl, uuid);
+            final ContentResponse response = httpClient.GET(url).getRequest().timeout(timeout, TimeUnit.SECONDS).send();
+            final String actualContent = response.getContentAsString();
+            final String expectedContent = String.format("uuid,%s", uuid).toLowerCase(Locale.ENGLISH);
+
+            if (actualContent == null) {
+                throw new CommunicationException("No response received from device!");
+            }
+
+            if (!actualContent.toLowerCase(Locale.ENGLISH).startsWith(expectedContent)) {
+                throw new ConfigurationException(String
+                        .format("The device URL '%s' does not point to a ZMote device with UUID '%s'!", baseUrl, uuid));
+            }
+
+        } catch (final ZMoteBindingException e) {
+            throw e;
+
+        } catch (final Exception e) {
+            final String errorMsg = String.format("Failed to validate UUID from device '%s'!", uuid);
+            throw new CommunicationException(errorMsg, e);
+        }
+    }
+
+    @Override
+    public synchronized void sendir(final String code, final int timeout) {
         try {
             final String url = String.format("%s/v2/%s", baseUrl, uuid);
             final String msg = String.format("sendir,1:1,0,%s", code);
@@ -35,7 +66,7 @@ public class ZMoteV2Client implements IZMoteClient {
 
             parseSendirResponse(response);
 
-        } catch (final CommunicationException e) {
+        } catch (final ZMoteBindingException e) {
             throw e;
 
         } catch (final Exception e) {
