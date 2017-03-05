@@ -28,7 +28,7 @@ public class ZMoteBindingConstants {
     public final static int DEFAULT_RETRY = 3;
 
     public final static int DISCOVERY_INTERVAL = 60;
-    public final static int DISCOVERY_TIMEOUT = 30;
+    public final static int DISCOVERY_TIMEOUT = 20;
     public final static int DISCOVERY_UPDATE_INTERVAL = 30;
 
     public final static String CHANNEL_ONLINE = "online";
