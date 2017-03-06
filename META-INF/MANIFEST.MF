@@ -8,6 +8,7 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ClassPath: .
 Import-Package: 
  com.google.gson,
+ com.google.gson.annotations,
  org.apache.commons.lang,
  org.eclipse.jetty.client,
  org.eclipse.jetty.client.api,
@@ -31,4 +32,3 @@ Import-Package:
 Service-Component: OSGI-INF/*.xml
 Export-Package: org.openhab.binding.zmote,
  org.openhab.binding.zmote.handler
-Require-Bundle: com.google.gson
