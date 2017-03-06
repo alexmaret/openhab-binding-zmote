@@ -8,10 +8,10 @@
  */
 package org.openhab.binding.zmote.internal.discovery;
 
-import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
+import java.net.SocketException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -57,7 +57,8 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
     private final Map<String, ZMoteDiscoveryResult> discoveryResults = new ConcurrentHashMap<>();
     private final List<IDiscoveryListener> discoveryListeners = new CopyOnWriteArrayList<>();
 
-    private ScheduledExecutorService scheduler = null;
+    private final ScheduledExecutorService scheduler = ThreadPoolManager
+            .getScheduledPool(ZMoteDiscoveryService.class.getName());
     private ScheduledFuture<?> discoveryFuture = null;
     private MulticastSocket discoverySocket = null;
 
@@ -128,7 +129,6 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
                 deactivate();
             }
 
-            scheduler = ThreadPoolManager.getScheduledPool(ZMoteDiscoveryService.class.getName());
             startDiscoveryFuture();
             startScan();
 
@@ -147,10 +147,6 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
 
     protected void deactivate() {
         try {
-            if (scheduler != null) {
-                scheduler.shutdown();
-            }
-
             stopDiscoveryFuture();
 
             if (logger.isDebugEnabled()) {
@@ -162,8 +158,6 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
                 logger.debug("Ignored exception while deactivating ZMote discovery service.", e);
             }
 
-        } finally {
-            scheduler = null;
         }
     }
 
@@ -198,7 +192,7 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
                 }
             }
         } catch (final Exception e) {
-            if ((e instanceof IOException) && Thread.currentThread().isInterrupted()) {
+            if ((e instanceof SocketException) && Thread.currentThread().isInterrupted()) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Discovery service worker has been terminated.");
                 }
