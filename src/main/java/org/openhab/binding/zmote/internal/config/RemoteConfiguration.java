@@ -111,8 +111,8 @@ public class RemoteConfiguration {
             }
 
         } catch (final Exception e) {
-            if (logger.isWarnEnabled()) {
-                logger.warn("Ignored exception while safe-closing file {}.", file.getAbsolutePath(), e);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Ignored exception while safe-closing file {}.", file.getAbsolutePath(), e);
             }
         }
     }
@@ -128,8 +128,8 @@ public class RemoteConfiguration {
         } catch (final SecurityException e) {
             lastModified = Long.MIN_VALUE;
 
-            if (logger.isWarnEnabled()) {
-                logger.warn("Access denied for configuration file '{}'!", file.getAbsolutePath());
+            if (logger.isErrorEnabled()) {
+                logger.error("Access denied for configuration file '{}'!", file.getAbsolutePath());
             }
         }
     }

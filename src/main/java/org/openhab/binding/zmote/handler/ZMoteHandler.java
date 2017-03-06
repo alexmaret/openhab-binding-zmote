@@ -91,13 +91,13 @@ public class ZMoteHandler extends BaseThingHandler {
                 onChannelSendKeyCommand(channelUID, command, zmoteConfig);
 
             } else {
-                if (logger.isErrorEnabled()) {
-                    logger.error("Don't know how to handle command {} on channel {}!", command, channelUID);
+                if (logger.isWarnEnabled()) {
+                    logger.warn("Don't know how to handle command {} on channel {}!", command, channelUID);
                 }
             }
         } catch (final Exception e) {
-            if (logger.isErrorEnabled()) {
-                logger.error("Failed to process command '{}' on channel '{}'!", command, channelUID);
+            if (logger.isWarnEnabled()) {
+                logger.warn("Failed to process command '{}' on channel '{}'!", command, channelUID);
             }
             updateStatusFromException(e);
         }

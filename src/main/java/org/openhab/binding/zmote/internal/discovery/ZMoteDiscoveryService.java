@@ -8,6 +8,7 @@
  */
 package org.openhab.binding.zmote.internal.discovery;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.net.MulticastSocket;
@@ -112,8 +113,8 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
                     MCAST_REQ_PORT));
 
         } catch (final Exception e) {
-            if (logger.isErrorEnabled()) {
-                logger.error("Failed to scan for ZMote devices!", e);
+            if (logger.isWarnEnabled()) {
+                logger.warn("Failed to scan for ZMote devices!", e);
             }
 
         } finally {
@@ -157,8 +158,8 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
             }
 
         } catch (final Exception e) {
-            if (logger.isErrorEnabled()) {
-                logger.error("Ignored exception while deactivating ZMote discovery service.", e);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Ignored exception while deactivating ZMote discovery service.", e);
             }
 
         } finally {
@@ -196,10 +197,13 @@ public class ZMoteDiscoveryService implements IZMoteDiscoveryService {
                     logger.debug("Discovered unsupported device: {}", responseMessage);
                 }
             }
-
         } catch (final Exception e) {
-            if (logger.isErrorEnabled()) {
-                logger.error("ZMote device discovery failed or has been aborted!", e);
+            if ((e instanceof IOException) && Thread.currentThread().isInterrupted()) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Discovery service worker has been terminated.");
+                }
+            } else if (logger.isWarnEnabled()) {
+                logger.warn("ZMote device discovery failed!", e);
             }
         } finally {
             safeCloseDiscoverySocket();

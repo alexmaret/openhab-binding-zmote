@@ -157,8 +157,8 @@ public class ZMoteService implements IZMoteService {
             httpClient.stop();
 
         } catch (final Exception e) {
-            if (logger.isErrorEnabled()) {
-                logger.error("Failed to stop HTTP client!", e);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Ignored exception while stopping HTTP client!", e);
             }
         }
 
