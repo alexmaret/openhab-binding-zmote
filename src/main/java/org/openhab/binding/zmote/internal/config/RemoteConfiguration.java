@@ -12,12 +12,21 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
+/**
+ * A remote configuration file reader, that can read remote configuration files
+ * in JSON format, as provided by the ZMote web app.
+ */
 public class RemoteConfiguration {
 
     private final Logger logger = LoggerFactory.getLogger(RemoteConfiguration.class);
     private final File file;
     private long lastModified = Long.MIN_VALUE;
 
+    /**
+     * Creates a new remote configuration reader.
+     *
+     * @param file An existing file.
+     */
     public RemoteConfiguration(final File file) {
         if (file == null) {
             throw new IllegalArgumentException("File cannot be null!");

@@ -13,12 +13,22 @@ import org.openhab.binding.zmote.internal.model.Remote;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Caches IR codes which were read from a {@link RemoteConfiguration} file.
+ * Changes to that file will be recognized and the ir code cache is updated
+ * accordingly.
+ */
 public class IRCodeConfigurationCache {
 
     private final Logger logger = LoggerFactory.getLogger(IRCodeConfigurationCache.class);
     private final Map<String, IRCode> codeCache = new HashMap<>();
     private final RemoteConfiguration remoteConfiguration;
 
+    /**
+     * Initializes a new cache with the given remote configuration.
+     *
+     * @param remoteConfiguration The remote configuration which must be backed by an existing file.
+     */
     public IRCodeConfigurationCache(final RemoteConfiguration remoteConfiguration) {
         if (remoteConfiguration == null) {
             throw new IllegalArgumentException("Remote configuration cannot be null!");
@@ -28,6 +38,13 @@ public class IRCodeConfigurationCache {
         updateCache();
     }
 
+    /**
+     * Gets the IR code for the given button key.
+     *
+     * @param button The button key to lookup.
+     *
+     * @return The IR code or null if it does not exist.
+     */
     public IRCode getCode(final String button) {
 
         final String buttonKey = StringUtils.trimToNull(button);
@@ -44,7 +61,7 @@ public class IRCodeConfigurationCache {
     private boolean updateCache() {
 
         if (!remoteConfiguration.isModified()) {
-            return false; // unchanged
+            return false; // nothing to update
         }
 
         final String filePath = remoteConfiguration.getFile().getAbsolutePath();

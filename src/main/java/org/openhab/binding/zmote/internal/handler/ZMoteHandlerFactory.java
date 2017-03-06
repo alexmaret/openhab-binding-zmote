@@ -54,18 +54,22 @@ public class ZMoteHandlerFactory extends BaseThingHandlerFactory {
         return null;
     }
 
+    // used by OSGI to set the service
     protected void setZMoteDiscoveryService(final IZMoteDiscoveryService zmoteDiscoveryService) {
         this.zmoteDiscoveryService = zmoteDiscoveryService;
     }
 
+    // used by OSGI to set the service
     protected void setZMoteService(final IZMoteService service) {
         zmoteService = service;
     }
 
+    // used by OSGI to unset the service
     protected void unsetZMoteDiscoveryService(final IZMoteDiscoveryService zmoteDiscoveryService) {
         this.zmoteDiscoveryService = null;
     }
 
+    // used by OSGI to unset the service
     protected void unsetZMoteService(final IZMoteService service) {
         zmoteService = null;
     }

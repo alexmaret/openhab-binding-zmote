@@ -20,6 +20,9 @@ public class Button {
     @SerializedName("tcode")
     private String tcode;
 
+    /**
+     * @return The button identifier or null.
+     */
     public String getKey() {
         return key;
     }
@@ -28,6 +31,9 @@ public class Button {
         this.key = key;
     }
 
+    /**
+     * @return The button name as defined by the user or null.
+     */
     public String getName() {
         return name;
     }
@@ -36,6 +42,9 @@ public class Button {
         this.name = name;
     }
 
+    /**
+     * @return The IR code for this button or null.
+     */
     public String getCode() {
         return code;
     }
@@ -44,6 +53,9 @@ public class Button {
         this.code = code;
     }
 
+    /**
+     * @return The toggle IR code for this button or null.
+     */
     public String getTcode() {
         return tcode;
     }

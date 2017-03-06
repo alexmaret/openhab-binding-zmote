@@ -14,6 +14,13 @@ public class ZMoteConfig {
     BigDecimal timeout;
     String uuid;
 
+    /**
+     * Returns the URL which was discovered using auto-discovery.
+     * This URL has to be set manually as it is not part of the Thing
+     * configuration and will not be set automatically.
+     *
+     * @return The auto-discovery URL or null.
+     */
     public String getAutoUrl() {
         return autoUrl;
     }
@@ -22,6 +29,9 @@ public class ZMoteConfig {
         this.autoUrl = autoUrl;
     }
 
+    /**
+     * @return The configuration file path as it is set in the thing's configuration.
+     */
     public String getConfigFile() {
         return configFile;
     }
@@ -30,6 +40,9 @@ public class ZMoteConfig {
         this.configFile = configFile;
     }
 
+    /**
+     * @return The override URL as it is set in the thing's configuration.
+     */
     public String getOverrideUrl() {
         return overrideUrl;
     }
@@ -38,6 +51,9 @@ public class ZMoteConfig {
         this.overrideUrl = overrideUrl;
     }
 
+    /**
+     * @return The number of retries as set in the thing's configuration.
+     */
     public BigDecimal getRetry() {
         return retry;
     }
@@ -46,6 +62,9 @@ public class ZMoteConfig {
         this.retry = retry;
     }
 
+    /**
+     * @return The connection timeout as set in the thing's configuration.
+     */
     public BigDecimal getTimeout() {
         return timeout;
     }
@@ -54,6 +73,9 @@ public class ZMoteConfig {
         this.timeout = timeout;
     }
 
+    /**
+     * @return The override URL if it is set, else the auto-discovery URL.
+     */
     public String getUrl() {
         if ((overrideUrl != null) && !overrideUrl.isEmpty()) {
             return overrideUrl;
@@ -61,6 +83,9 @@ public class ZMoteConfig {
         return autoUrl;
     }
 
+    /**
+     * @return The UUID as set in the thing's configuration.
+     */
     public String getUuid() {
         return uuid;
     }

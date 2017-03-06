@@ -21,6 +21,9 @@ public class Remote {
     @SerializedName("keys")
     private Collection<Button> buttons;
 
+    /**
+     * @return The remote's brand name or null.
+     */
     public String getBrand() {
         return brand;
     }
@@ -29,6 +32,9 @@ public class Remote {
         this.brand = brand;
     }
 
+    /**
+     * @return The remote's model name or null.
+     */
     public String getModel() {
         return model;
     }
@@ -37,6 +43,9 @@ public class Remote {
         this.model = model;
     }
 
+    /**
+     * @return The user chosen name of the remote or null.
+     */
     public String getName() {
         return name;
     }
@@ -45,6 +54,9 @@ public class Remote {
         this.name = name;
     }
 
+    /**
+     * @return A list of buttons defined for this remote or null.
+     */
     public Collection<Button> getButtons() {
         return buttons;
     }

@@ -1,5 +1,8 @@
 package org.openhab.binding.zmote.internal.exception;
 
+/**
+ * The base exception for all ZMote related errors.
+ */
 public class ZMoteBindingException extends RuntimeException {
 
     private static final long serialVersionUID = -436906833815967484L;

@@ -38,7 +38,8 @@ public interface IZMoteDiscoveryService {
     void removeListener(IDiscoveryListener listener);
 
     /**
-     * Starts an active scan for ZMote devices.
+     * Starts an active scan for ZMote devices. All listeners will be informed about
+     * any discoveries.
      */
     void startScan();
 }
