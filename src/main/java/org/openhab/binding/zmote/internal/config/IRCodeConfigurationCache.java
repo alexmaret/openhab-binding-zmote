@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.openhab.binding.zmote.internal.config;
 
 import java.util.Collection;
@@ -17,6 +25,8 @@ import org.slf4j.LoggerFactory;
  * Caches IR codes which were read from a {@link RemoteConfiguration} file.
  * Changes to that file will be recognized and the ir code cache is updated
  * accordingly.
+ *
+ * @author Alexander Maret-Huskinson - Initial contribution
  */
 public class IRCodeConfigurationCache {
 

@@ -1,3 +1,11 @@
+/**
+ * Copyright (c) 2010-2017 by the respective copyright holders.
+ *
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.openhab.binding.zmote.internal.model;
 
 import java.util.Collection;
@@ -7,6 +15,8 @@ import com.google.gson.annotations.SerializedName;
 
 /**
  * A remote as read from the remote configuration file.
+ *
+ * @author Alexander Maret-Huskinson - Initial contribution
  */
 public class Remote {
     @SerializedName("brand")
