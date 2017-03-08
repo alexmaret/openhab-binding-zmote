@@ -114,3 +114,36 @@ String zmote_samsung_sendcode "Send IR Code" { channel="zmote:zmt2:samsung:sendc
 Switch item=zmote_ir_sendcode label="Sony Power" mappings=[ "36000,2,1,32,32,64,32,32,64,32,3264"="On" ]
 Switch item=zmote_samsung_sendcode label="Sony Power" mappings=[ "36000,2,1,32,32,64,32,32,64,32,3264"="On" ]
 ```
+
+## Additional Examples
+
+### Amazon Alexa
+
+You need the Hue Emulation service configured for the following to work.
+
+**demo.things**
+```
+zmote:zmt2:samsung "Samsung Remote" [ uuid="CI00a1b2c4", configFile="c:\OpenHAB\userdata\config\samsung.json" ]
+```
+
+**demo.items**
+```xtend
+String zmote_samsung_sendkey "Send Samsung Button" { channel="zmote:zmt2:samsung:sendkey" }
+Switch zmote_samsung_power   "TV"                  [ "Switchable" ]
+```
+
+**demo.rules**
+```xtend
+rule "Samsung Power"
+when
+    Item zmote_samsung_power received command
+then
+    sendCommand(zmote_samsung_sendkey, "KEY_POWER")
+end
+```
+
+**Amazon Alexa**
+```
+Alexa, discover devices
+Alexa, turn on TV
+```
