@@ -3,7 +3,7 @@ Bundle-ManifestVersion: 2
 Bundle-Name: ZMote Binding
 Bundle-SymbolicName: org.openhab.binding.zmote;singleton:=true
 Bundle-Vendor: openHAB
-Bundle-Version: 0.1.1
+Bundle-Version: 0.1.2.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-1.7
 Bundle-ClassPath: .
 Import-Package: 
