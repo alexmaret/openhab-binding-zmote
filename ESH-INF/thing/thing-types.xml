@@ -20,7 +20,7 @@
         <config-description>
             <parameter name="configFile" type="text" required="false">
                 <label>Configuration File</label>
-                <description>The path to the configuration file for the remote.</description>
+                <description>The path to the configuration file for your remote.</description>
             </parameter>
 
             <parameter name="uuid" type="text" required="true">
@@ -57,15 +57,15 @@
 
     <channel-type id="sendcode">
         <item-type>String</item-type>        
-        <label>Code</label>
-        <description>The IR code that should be sent by the device.</description>
+        <label>Send IR Code</label>
+        <description>The raw IR code that should be sent by the ZMote.</description>
         <state readOnly="false"></state>  
     </channel-type>
 
     <channel-type id="sendkey">
         <item-type>String</item-type>        
-        <label>Key</label>
-        <description>The name of the button that should be sent by the device.</description>
+        <label>Send Button Code</label>
+        <description>The identifier of the button that should be sent by the ZMote.</description>
         <state readOnly="false"></state>  
     </channel-type>
 </thing:thing-descriptions>
