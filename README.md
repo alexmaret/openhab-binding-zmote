@@ -154,3 +154,33 @@ end
 Alexa, discover devices
 Alexa, turn on TV
 ```
+
+## Debugging
+
+Debuging can be done by connecting to the OpenHAB console via SSH. The default port is **8101**
+and the default password is **habopen**.
+
+```
+$ ssh -p 8101 localhost
+```
+
+### Logging
+
+To enable debug logging you have to raise the log level from INFO to DEBUG.
+
+```
+openhab> log:set DEBUG org.openhab.binding.zmote
+openhab> log:tail
+```
+
+Press Ctrl-C to abort log monitoring and set the log level back to INFO once you are done.
+
+### Starting and Stopping
+
+You can stop and start the plugin manually to fore reinitialization.
+
+```
+openhab> stop org.openhab.binding.zmote
+openhab> start org.openhab.binding.zmote
+```
+
